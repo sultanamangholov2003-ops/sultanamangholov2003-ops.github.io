@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Путь Великого Хана — историческая игра</title>
+<meta name="description" content="Историческая игра: принимайте решения и следите за их влиянием на государство.">
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial, sans-serif;
+    text-align:center;
+    transition: background 1s ease;
+}
+#prologue {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+#introVideo {
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+    border-radius: 12px;
+    object-fit: contain;
+    background: black;
+    margin-bottom: 20px;
+}
+#eventImage{
+    width:700px;
+    height:400px;
+    object-fit:cover;
+    display:block;
+    margin:20px auto;
+    border-radius:12px;
+    box-shadow:0 8px 25px rgba(0,0,0,0.4);
+    opacity:0;
+    transition: opacity 1s ease;
+}
+#eventText{
+    opacity:0;
+    transition: opacity 1s ease;
+}
+button{
+    padding:10px 20px;
+    margin:10px;
+    font-size:16px;
+    cursor:pointer;
+    transition: transform 0.2s, background 0.2s, opacity 0.5s ease;
+    opacity:0;
+}
+button:hover{
+    transform: scale(1.1);
+    background: #444;
+}
+#stats{
+    margin:20px;
+    font-size:18px;
+}
+#fade{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:black;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 1.5s ease;
+    z-index:999;
+}
+.fade-in{
+    opacity:1 !important;
+}
+#stats, #eventImage, #eventText, #choices{
+    display:none;
+}
+
+#prologue button { opacity: 1; }
+#eventImage { max-width: calc(100vw - 32px); height: auto; aspect-ratio: 7/4; }
+#eventText { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
+#choices { max-width: 1200px; margin: 0 auto 24px; }
+@media (max-width: 600px) {
+  h1 { font-size: 26px; }
+  #eventText { font-size: 21px; }
+  #choices button { display: block; width: calc(100% - 32px); margin: 12px 16px; }
+}
+</style>
+</head>
+<body>
+<noscript>Для игры включите JavaScript в браузере.</noscript>
+<div id="fade"></div>
+<div id="prologue">
+    <h1>Пролог</h1>
+    <p>История начинается в бескрайней степи. Из изгнания и унижения рождается империя.</p>
+    <video id="introVideo" controls preload="metadata" playsinline>
+        <source data-asset="prologue.mp4" type="video/mp4">
+    </video>
+    <div>
+        <button onclick="playVideo()">▶ Смотреть пролог</button>
+        <button onclick="skipVideo()">⏭ Пропустить</button>
+    </div>
+</div>
+<h1>Путь Великого Хана</h1>
+<div id="stats"></div>
+<img id="eventImage" src="">
+<h2 id="eventText"></h2>
+<div id="choices"></div>
+<audio preload="none" id="bgMusic" data-asset="background.mp3" loop></audio>
+<audio preload="none" id="wind" data-asset="wind.mp3" loop></audio>
+<audio preload="none" id="drums" data-asset="drums.mp3"></audio>
+<audio preload="none" id="clickSound" data-asset="click.mp3"></audio>
+<audio preload="none" id="winSound" data-asset="win.mp3"></audio>
+<audio preload="none" id="loseSound" data-asset="lose.mp3"></audio>
+<script id="embeddedAssets" type="application/json">{"background.mp3":"background.mp3","click.mp3":"click.mp3","drums.mp3":"drums.mp3","images/ending_authority.jpg":"images/ending_authority.jpg","images/ending_broke.jpg":"images/ending_broke.jpg","images/ending_conqueror.jpg":"images/ending_conqueror.jpg","images/ending_divided.jpg":"images/ending_divided.jpg","images/ending_fragile.jpg":"images/ending_fragile.jpg","images/ending_legend.jpg":"images/ending_legend.jpg","images/ending_loyal.jpg":"images/ending_loyal.jpg","images/ending_survive.jpg":"images/ending_survive.jpg","images/ending_unifier.jpg":"images/ending_unifier.jpg","images/ending_weak.jpg":"images/ending_weak.jpg","images/final1.jpg":"images/final1.jpg","images/final10.jpg":"images/final10.jpg","images/final2.jpg":"images/final2.jpg","images/final3.jpg":"images/final3.jpg","images/final4.jpg":"images/final4.jpg","images/final5.jpg":"images/final5.jpg","images/final6.jpg":"images/final6.jpg","images/final7.jpg":"images/final7.jpg","images/final8.jpg":"images/final8.jpg","images/final9.jpg":"images/final9.jpg","images/internal1.jpg":"images/internal1.jpg","images/internal10.jpg":"images/internal10.jpg","images/internal2.jpg":"images/internal2.jpg","images/internal3.jpg":"images/internal3.jpg","images/internal4.jpg":"images/internal4.jpg","images/internal5.jpg":"images/internal5.jpg","images/internal6.jpg":"images/internal6.jpg","images/internal7.jpg":"images/internal7.jpg","images/internal8.jpg":"images/internal8.jpg","images/internal9.jpg":"images/internal9.jpg","images/prologue1.jpg":"images/prologue1.jpg","images/prologue2.jpg":"images/prologue2.jpg","images/prologue3.jpg":"images/prologue3.jpg","images/prologue4.jpg":"images/prologue4.jpg","images/prologue5.jpg":"images/prologue5.jpg","images/unification1.jpg":"images/unification1.jpg","images/unification10.jpg":"images/unification10.jpg","images/unification2.jpg":"images/unification2.jpg","images/unification3.jpg":"images/unification3.jpg","images/unification4.jpg":"images/unification4.jpg","images/unification5.jpg":"images/unification5.jpg","images/unification6.jpg":"images/unification6.jpg","images/unification7.jpg":"images/unification7.jpg","images/unification8.jpg":"images/unification8.jpg","images/unification9.jpg":"images/unification9.jpg","images/war1.jpg":"images/war1.jpg","images/war10.jpg":"images/war10.jpg","images/war2.jpg":"images/war2.jpg","images/war3.jpg":"images/war3.jpg","images/war4.jpg":"images/war4.jpg","images/war5.jpg":"images/war5.jpg","images/war6.jpg":"images/war6.jpg","images/war7.jpg":"images/war7.jpg","images/war8.jpg":"images/war8.jpg","images/war9.jpg":"images/war9.jpg","lose.mp3":"lose.mp3","prologue.mp4":"prologue.mp4","win.mp3":"win.mp3","wind.mp3":"wind.mp3","choice.mp3":"choice.mp3","images/final_battle.jpg":"images/final_battle.jpg"}</script>
+<script>
+const embeddedAssets = JSON.parse(document.getElementById("embeddedAssets").textContent);
+document.querySelectorAll("[data-asset]").forEach(element => {
+  element.src = embeddedAssets[element.getAttribute("data-asset")];
+});
+document.querySelectorAll("video").forEach(element => element.load());
+function safePlay(element) {
+  try {
+    const result = element.play();
+    if (result && typeof result.catch === "function") result.catch(() => {});
+  } catch (_) {}
+}
+
+let stats = {authority:50, loyalty:50, army:50, resources:50, stability:50};
+let currentPhase = "prologue";
+let currentStage = 0;
+let path = null;
+
+const prologueEvents = [
+  {
+    text: "1162 г. В степи у реки Онон рождается сын Есугэя и Оэлун. Шаман пророчит: 'Он завоюет мир'.",
+    image: embeddedAssets["images/prologue1.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Верить пророчеству", effect: {authority:10, resources:-5} },
+      { text: "Игнорировать", effect: {stability:10} },
+      { text: "Жертвовать скотом", effect: {loyalty:10, resources:-10} }
+    ]
+  },
+  {
+    text: "1171 г. Отец отравлен татарами во время пира. Семья в трауре.",
+    image: embeddedAssets["images/prologue2.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Клясться в мести", effect: {authority:15, loyalty:-10} },
+      { text: "Спрятаться", effect: {stability:15, army:-5} },
+      { text: "Просить помощи у родни", effect: {loyalty:15, resources:-10} }
+    ]
+  },
+  {
+    text: "Тайчиуты и другие племена отвергают семью. Голод в степи.",
+    image: embeddedAssets["images/prologue3.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Охотиться рискованно", effect: {resources:15, stability:-15} },
+      { text: "Красть у соседей", effect: {army:10, loyalty:-10} },
+      { text: "Выживать вместе", effect: {loyalty:20, authority:-5} }
+    ]
+  },
+  {
+    text: "Тэмуджина ловят и надевают ярмо. Рабство.",
+    image: embeddedAssets["images/prologue4.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Бежать немедленно", effect: {authority:15, army:-10} },
+      { text: "Ждать союзников", effect: {loyalty:15, stability:5} },
+      { text: "Подкупить стражу", effect: {resources:-15, stability:15} }
+    ]
+  },
+  {
+    text: "Сводный брат крадёт рыбу. Семья голодает. Выбор: брат или выживание?",
+    image: embeddedAssets["images/prologue5.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Убить его", effect: {authority:20, loyalty:-20} },
+      { text: "Простить", effect: {loyalty:20, stability:-10} },
+      { text: "Изгнать", effect: {stability:15, army:5}, next: "unification" }
+    ]
+  }
+];
+
+const unificationEvents = [
+  {
+    text: "1189 г. Ван-хан Тоорил дарит тебе Бортэ. Союз скреплён браком.",
+    image: embeddedAssets["images/unification1.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Принять подарок", effect: {loyalty:15, resources:-10} },
+      { text: "Отказаться", effect: {authority:10, loyalty:-10} },
+      { text: "Украсть силой", effect: {army:10, stability:-10} }
+    ]
+  },
+  {
+    text: "Меркиты похищают Бортэ в отместку.",
+    image: embeddedAssets["images/unification2.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Мстить немедленно", effect: {army:10, resources:-15} },
+      { text: "Ждать союзников", effect: {loyalty:10, authority:-5} },
+      { text: "Дипломатия", effect: {stability:10, army:-10} }
+    ]
+  },
+  {
+    text: "С Тоорилом и Джамухой вы идёте на меркитов.",
+    image: embeddedAssets["images/unification3.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Быстрая атака", effect: {army:15, loyalty:-5} },
+      { text: "Осадить лагерь", effect: {resources:10, stability:-10} },
+      { text: "Делить добычу поровну", effect: {loyalty:15, authority:-10} }
+    ]
+  },
+  {
+    text: "Тоорил — Ван-хан кереитов. Заключить анда?",
+    image: embeddedAssets["images/unification4.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Стать побратимами", effect: {loyalty:15, authority:-5} },
+      { text: "Подчинить", effect: {authority:10, loyalty:-10} },
+      { text: "Союз через дары", effect: {resources:-15, stability:10} }
+    ]
+  },
+  {
+    text: "1201 г. Коалиция татар, тайчиутов и Джамухи против тебя.",
+    image: embeddedAssets["images/unification5.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Личная атака", effect: {authority:15, army:-10} },
+      { text: "Фланговый манёвр", effect: {army:15, resources:-10} },
+      { text: "Отступить и контратаковать", effect: {stability:10, loyalty:-10} }
+    ]
+  },
+  {
+    text: "Тоорил предаёт, хочет твою жену Есуген.",
+    image: embeddedAssets["images/unification6.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Казнить предателей", effect: {authority:15, loyalty:-15} },
+      { text: "Переговоры", effect: {loyalty:10, stability:-10} },
+      { text: "Игнорировать", effect: {resources:10, authority:-10} }
+    ]
+  },
+  {
+    text: "1203 г. Битва с кереитами Тоорила.",
+    image: embeddedAssets["images/unification7.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Полное уничтожение", effect: {army:15, stability:-10} },
+      { text: "Взять в плен элиту", effect: {loyalty:10, resources:-15} },
+      { text: "Делить улусы", effect: {stability:15, authority:-10} }
+    ]
+  },
+  {
+    text: "1204 г. Найманы под Кучлуком. Их хан в плену.",
+    image: embeddedAssets["images/unification8.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Казнить хана", effect: {authority:15, loyalty:-10} },
+      { text: "Интегрировать", effect: {loyalty:15, army:-10} },
+      { text: "Ослепить и изгнать", effect: {stability:10, resources:10} }
+    ]
+  },
+  {
+    text: "Татары — убийцы отца. Их вождь в цепях.",
+    image: embeddedAssets["images/unification9.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Общая казнь", effect: {authority:10, loyalty:-15} },
+      { text: "По заслугам", effect: {army:10, stability:-10} },
+      { text: "Миловать выживших", effect: {loyalty:15, authority:-10} }
+    ]
+  },
+  {
+    text: "1206 г. На Ононе все племена. Титул: Чингисхан.",
+    image: embeddedAssets["images/unification10.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Начать завоевания", next: "war" },
+      { text: "Укрепить степь", next: "internal" },
+      { text: "Провозгласить Ясу", effect: {stability:15, loyalty:-5} }
+    ]
+  }
+];
+
+const warEvents = [
+  {
+    text: "1207 г. Тангуты (Си Ся) отказывают в данях. Первый поход за пределы степи.",
+    image: embeddedAssets["images/war1.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Быстрый набег", effect: {army:15, resources:-15} },
+      { text: "Осадить столицу", effect: {stability:10, army:-10} },
+      { text: "Требовать вассалитет", effect: {authority:15, loyalty:-10} }
+    ]
+  },
+  {
+    text: "1210 г. Уйгуры сдаются без боя, прося союза.",
+    image: embeddedAssets["images/war2.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Принять как нукеров", effect: {loyalty:15, army:10} },
+      { text: "Обложить данью", effect: {resources:20, authority:-5} },
+      { text: "Уничтожить элиту", effect: {authority:15, stability:-15} }
+    ]
+  },
+  {
+    text: "1211 г. Цзинь (Северный Китай). Битва при Ехулин.",
+    image: embeddedAssets["images/war3.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Личная атака", effect: {authority:20, army:-15} },
+      { text: "Фланг Субэдэя", effect: {army:20, resources:-15} },
+      { text: "Долгая осада", effect: {stability:15, loyalty:-10} }
+    ]
+  },
+  {
+    text: "1218 г. Хорезм-шах Мухаммед убивает послов в Отраре.",
+    image: embeddedAssets["images/war4.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Тотальная война", effect: {authority:20, resources:-20} },
+      { text: "Требовать компенсацию", effect: {loyalty:10, stability:-10} },
+      { text: "Игнорировать", effect: {resources:15, authority:-15} }
+    ]
+  },
+  {
+    text: "1219 г. 5 месяцев осады. Губернатор Иналчук в цепях.",
+    image: embeddedAssets["images/war5.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Расплавить серебро на голову", effect: {authority:20, loyalty:-15} },
+      { text: "Взять в плен", effect: {army:15, stability:-10} },
+      { text: "Миловать", effect: {loyalty:20, authority:-15} }
+    ]
+  },
+  {
+    text: "1220 г. Города сдаются. Имамы просят пощады.",
+    image: embeddedAssets["images/war6.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Городить пирамиды черепов", effect: {authority:15, stability:-20} },
+      { text: "Взять дань", effect: {resources:25, army:-10} },
+      { text: "Интегрировать ремесленников", effect: {loyalty:15, resources:-10} }
+    ]
+  },
+  {
+    text: "1221 г. Последняя крепость Хорезма. Полное истребление.",
+    image: embeddedAssets["images/war7.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Утопить город", effect: {army:20, loyalty:-20} },
+      { text: "Спасти ремесленников", effect: {stability:15, resources:15} },
+      { text: "Делить добычу", effect: {resources:25, authority:-10} }
+    ]
+  },
+  {
+    text: "1221 г. Джалал ад-Дин у реки Инд. Последний хорезмиец.",
+    image: embeddedAssets["images/war8.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Смелая атака", effect: {authority:20, army:-15} },
+      { text: "Тактическое отступление", effect: {stability:15, resources:10} },
+      { text: "Договориться", effect: {loyalty:15, army:-10} }
+    ]
+  },
+  {
+    text: "1222–1223 гг. Битва на Калке с русами. Добыча.",
+    image: embeddedAssets["images/war9.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Полное уничтожение", effect: {army:20, stability:-15} },
+      { text: "Взять дань и уйти", effect: {resources:25, loyalty:-10} },
+      { text: "Союз с половцами", effect: {loyalty:20, authority:-10} }
+    ]
+  },
+  {
+    text: "1226–1227 гг. Тангуты бунтуют. Смерть в походе.",
+    image: embeddedAssets["images/war10.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Усилить осаду", next: "final", effect: {army:15} },
+      { text: "Переговоры", effect: {stability:20} },
+      { text: "Вернуться", effect: {resources:20, authority:-20} }
+    ]
+  }
+];
+
+const internalEvents = [
+  {
+    text: "1207 г. Свод законов: от казни за воровство до равенства перед ханом.",
+    image: embeddedAssets["images/internal1.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Строгое исполнение", effect: {stability:20, loyalty:-15} },
+      { text: "Адаптировать к традициям", effect: {loyalty:15, authority:-10} },
+      { text: "Объявить священной", effect: {authority:15, resources:-10} }
+    ]
+  },
+  {
+    text: "Армия по 10-100-1000-10 000. Конец родовым отрядам.",
+    image: embeddedAssets["images/internal2.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Обязательная", effect: {army:15, loyalty:-10} },
+      { text: "Поощрять", effect: {loyalty:15, resources:-15} },
+      { text: "Смешать с традициями", effect: {stability:20, army:-10} }
+    ]
+  },
+  {
+    text: "Нукеры из низов — на первые роли. Знать недовольна.",
+    image: embeddedAssets["images/internal3.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Казнить бунтарей", effect: {authority:20, loyalty:-20} },
+      { text: "Дать привилегии", effect: {loyalty:20, stability:-15} },
+      { text: "Тестировать в бою", effect: {army:15, resources:-10} }
+    ]
+  },
+  {
+    text: "Почтовые станции каждые 25–40 км. Сменные кони для курьеров.",
+    image: embeddedAssets["images/internal4.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Обязательная сеть", effect: {resources:20, stability:10} },
+      { text: "Награждать ямщиков", effect: {loyalty:15, resources:-15} },
+      { text: "Централизовать", effect: {authority:15, army:-10} }
+    ]
+  },
+  {
+    text: "Учёт всех подданных для налогов и набора.",
+    image: embeddedAssets["images/internal5.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Строгий реестр", effect: {resources:25, loyalty:-15} },
+      { text: "С местными чиновниками", effect: {stability:20, authority:-10} },
+      { text: "Связать с Ясой", effect: {stability:15, resources:-10} }
+    ]
+  },
+  {
+    text: "Каравары под охраной. Штрафы за грабёж.",
+    image: embeddedAssets["images/internal6.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Личный эскорт", effect: {resources:20, army:-15} },
+      { text: "Налоги на торговлю", effect: {resources:25, loyalty:-10} },
+      { text: "Свободный проезд", effect: {loyalty:20, stability:-10} }
+    ]
+  },
+  {
+    text: "Шаманы, даосы, мусульмане — равны. Нет налогов на храмы.",
+    image: embeddedAssets["images/internal7.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Запрет споров", effect: {stability:20, loyalty:10} },
+      { text: "Шаманов в совет", effect: {loyalty:20, authority:-15} },
+      { text: "Контроль за всеми", effect: {authority:15, stability:-10} }
+    ]
+  },
+  {
+    text: "Нойоны грабят дань. Чистки среди элиты.",
+    image: embeddedAssets["images/internal8.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Казни публичные", effect: {authority:20, loyalty:-20} },
+      { text: "Аудиторы из нукеров", effect: {stability:15, resources:15} },
+      { text: "Амнистия за признание", effect: {loyalty:20, authority:-10} }
+    ]
+  },
+  {
+    text: "Земли: Джочи — запад, Чагатай — центр, Угэдэй — Монголия, Толуй — тыл.",
+    image: embeddedAssets["images/internal9.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Равно разделить", effect: {stability:20, loyalty:-10} },
+      { text: "По заслугам", effect: {authority:15, loyalty:-15} },
+      { text: "Центр под контролем", effect: {resources:15, army:-10} }
+    ]
+  },
+  {
+    text: "Хан стареет. Выбор Великого хана после смерти.",
+    image: embeddedAssets["images/internal10.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Угэдэй — преемник", next: "final", effect: {stability:20} },
+      { text: "Курултай решит", effect: {loyalty:20} },
+      { text: "Сыновья по заслугам", effect: {authority:20, stability:-15} }
+    ]
+  }
+];
+
+const finalEvents = [
+  {
+    text: "1227 г. Во время похода на тангутов хан тяжело ранен / заболел.",
+    image: embeddedAssets["images/final1.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Продолжать поход несмотря ни на что", effect: {authority:20, army:10, stability:-15} },
+      { text: "Отступить в ставку", effect: {stability:15, resources:10} },
+      { text: "Доверить командование сыновьям", effect: {loyalty:15, authority:-10} }
+    ]
+  },
+  {
+    text: "Хан созывает сыновей и нойонов. Говорит о будущем империи.",
+    image: embeddedAssets["images/final2.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Назначить Угэдэя преемником", effect: {stability:20} },
+      { text: "Оставить выбор курултаю", effect: {loyalty:20} },
+      { text: "Разделить власть между всеми сыновьями", effect: {resources:15, stability:-20} }
+    ]
+  },
+  {
+    text: "Хан напоминает о нерушимости Ясы и единстве.",
+    image: embeddedAssets["images/final3.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Усилить наказания за нарушение", effect: {authority:25, loyalty:-15} },
+      { text: "Добавить милосердие к покорённым", effect: {loyalty:20, stability:10} },
+      { text: "Запретить делить империю", effect: {stability:15, army:-10} }
+    ]
+  },
+  {
+    text: "Сыновья спорят: Джочи, Чагатай, Угэдэй, Толуй.",
+    image: embeddedAssets["images/final4.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Поддержать Угэдэя", effect: {stability:25} },
+      { text: "Дать шанс Джочи", effect: {loyalty:15, authority:-15} },
+      { text: "Отложить решение", effect: {resources:10, stability:-10} }
+    ]
+  },
+  {
+    text: () => path === "war" ? "Тангуты почти сломлены. Последний штурм?" : "Хан издаёт указ о почте и налогах.",
+    image: embeddedAssets["images/final5.jpg"],
+    bgColor: "#393E46",
+    choices: () => path === "war" ? [
+      { text: "Штурм", effect: {army:20, authority:15, stability:-20} },
+      { text: "Принять капитуляцию", effect: {resources:25, loyalty:10} },
+      { text: "Доверить сыновьям", effect: {loyalty:15, army:10} }
+    ] : [
+      { text: "Увеличить налоги", effect: {resources:25, loyalty:-15} },
+      { text: "Снизить для верных", effect: {loyalty:25, resources:-15} },
+      { text: "Централизовать", effect: {authority:15, stability:10} }
+    ]
+  },
+  {
+    text: "Один из нойонов / сына подозревают в заговоре.",
+    image: embeddedAssets["images/final6.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Казнить немедленно", effect: {authority:25, loyalty:-25} },
+      { text: "Провести расследование", effect: {stability:15, resources:-10} },
+      { text: "Простить и приблизить", effect: {loyalty:25, authority:-20} }
+    ]
+  },
+  {
+    text: "Хан говорит: 'Я оставляю вам великую империю…'",
+    image: embeddedAssets["images/final7.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "…которую вы должны расширять", effect: {army:20, authority:10} },
+      { text: "…которую нужно сохранить в мире", effect: {stability:25, loyalty:10} },
+      { text: "…которую вы заслужили кровью", effect: {army:15, loyalty:-15} }
+    ]
+  },
+  {
+    text: "1227 г. Великий хан умирает. Тело тайно везут в Бурхан-Халдун.",
+    image: embeddedAssets["images/final8.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Похоронить с почестями", effect: {authority:10, stability:15} },
+      { text: "Скрыть смерть от армии", effect: {army:15, loyalty:-10} },
+      { text: "Объявить сразу", effect: {loyalty:20, stability:-10} }
+    ]
+  },
+  {
+    text: "Новости доходят до улусов. Кто-то радуется, кто-то боится.",
+    image: embeddedAssets["images/final9.jpg"],
+    bgColor: "#393E46",
+    choices: [
+      { text: "Подавить слухи силой", effect: {authority:20, stability:-15} },
+      { text: "Провести великий курултай", effect: {loyalty:25, resources:-15} },
+      { text: "Дать свободу нойонам", effect: {stability:20, authority:-20} }
+    ]
+  },
+  {
+    text: "Империя стоит. Что будет дальше?",
+    image: embeddedAssets["images/final10.jpg"],
+    bgColor: "#222831",
+    choices: [
+      { text: "Продолжить завоевания", final: true },
+      { text: "Сохранить единство", final: true },
+      { text: "Разделить на улусы", final: true }
+    ]
+  }
+];
+
+const endings = [
+  {
+    text: "Ты стал Великим завоевателем. Империя простирается от Китая до Европы!",
+    image: embeddedAssets["images/ending_conqueror.jpg"],
+    bgColor: "#222831",
+    condition: (stats, choice, path) => path === "war" && stats.army >= 80 && choice.text === "Продолжить завоевания"
+  },
+  {
+    text: "Империя выжила, но завоевания остановились. Наследники продолжат.",
+    image: embeddedAssets["images/ending_survive.jpg"],
+    bgColor: "#393E46",
+    condition: (stats, choice, path) => path === "war" && stats.stability >= 70 && choice.text === "Сохранить единство"
+  },
+  {
+    text: "Империя хрупка, но легенда о тебе вечна.",
+    image: embeddedAssets["images/ending_fragile.jpg"],
+    bgColor: "#222831",
+    condition: (stats, choice, path) => path === "war" && stats.army < 60
+  },
+  {
+    text: "Ты мудрый объединитель. Империя стабильна, но не растёт.",
+    image: embeddedAssets["images/ending_unifier.jpg"],
+    bgColor: "#393E46",
+    condition: (stats, choice, path) => path === "internal" && stats.loyalty >= 70 && choice.text === "Сохранить единство"
+  },
+  {
+    text: "Империя слаба, наследники дерутся за власть.",
+    image: embeddedAssets["images/ending_weak.jpg"],
+    bgColor: "#222831",
+    condition: (stats, choice, path) => stats.stability < 50
+  },
+  {
+    text: "Великий раздел: улусы сыновей расцветают, но единство потеряно.",
+    image: embeddedAssets["images/ending_divided.jpg"],
+    bgColor: "#393E46",
+    condition: (stats, choice, path) => choice.text === "Разделить на улусы" && stats.resources >= 70
+  },
+  {
+    text: "Твоё наследие — страх и уважение. Империя держится на авторитете.",
+    image: embeddedAssets["images/ending_authority.jpg"],
+    bgColor: "#222831",
+    condition: (stats, choice, path) => stats.authority >= 80
+  },
+  {
+    text: "Лояльные воины продолжают твоё дело. Империя в мире.",
+    image: embeddedAssets["images/ending_loyal.jpg"],
+    bgColor: "#393E46",
+    condition: (stats, choice, path) => stats.loyalty >= 80 && path === "internal"
+  },
+  {
+    text: "Ресурсы истощены, империя рушится после твоей смерти.",
+    image: embeddedAssets["images/ending_broke.jpg"],
+    bgColor: "#222831",
+    condition: (stats, choice, path) => stats.resources < 30
+  },
+  {
+    text: "Ты — легенда степи. Империя вечна в историях.",
+    image: embeddedAssets["images/ending_legend.jpg"],
+    bgColor: "#393E46",
+    condition: (stats, choice, path) => true // Дефолтная концовка
+  }
+];
+
+function updateStats(){
+  document.getElementById("stats").innerHTML =
+    `Авторитет: ${stats.authority} |
+    Лояльность: ${stats.loyalty} |
+    Армия: ${stats.army} |
+    Ресурсы: ${stats.resources} |
+    Стабильность: ${stats.stability}`;
+}
+
+function applyEffect(effect){
+  for(let key in effect){ stats[key] += effect[key]; }
+}
+
+function checkDefeat(){
+  if(stats.authority <= 0 || stats.loyalty <= 0 || stats.army <= 0 || stats.resources <= 0 || stats.stability <= 0){
+    document.getElementById("eventText").innerText = "Государство пало.";
+    safePlay(document.getElementById("loseSound"));
+    document.getElementById("choices").innerHTML = "";
+    return true;
+  }
+  return false;
+}
+
+function loadEvent(event){
+  event = {...event,
+    text: typeof event.text === "function" ? event.text() : event.text,
+    choices: typeof event.choices === "function" ? event.choices() : event.choices
+  };
+  const img = document.getElementById("eventImage");
+  const text = document.getElementById("eventText");
+  const choicesContainer = document.getElementById("choices");
+  img.style.opacity = 0;
+  text.style.opacity = 0;
+  choicesContainer.innerHTML = "";
+  document.body.style.background = event.bgColor;
+  setTimeout(() => {
+    img.src = event.image;
+    text.innerText = event.text;
+    img.style.opacity = 1;
+    text.style.opacity = 1;
+    event.choices.forEach((choice, index) => {
+      let btn = document.createElement("button");
+      btn.innerText = choice.text;
+      btn.style.opacity = 0;
+      btn.onmouseover = () => btn.style.background = "#555";
+      btn.onmouseout = () => btn.style.background = "";
+      btn.onclick = function(){
+        safePlay(document.getElementById("clickSound"));
+        if(choice.effect) applyEffect(choice.effect);
+        updateStats();
+        if(checkDefeat()) return;
+        if(choice.final){
+          resolveEnding(choice);
+          return;
+        }
+        if(choice.next){
+          if(choice.next === "unification"){
+            currentPhase = "unification";
+            currentStage = 0;
+          } else if(choice.next === "war"){
+            path = "war";
+            currentPhase = "war";
+            currentStage = 0;
+          } else if(choice.next === "internal"){
+            path = "internal";
+            currentPhase = "internal";
+            currentStage = 0;
+          } else if(choice.next === "final"){
+            currentPhase = "final";
+            currentStage = 0;
+          }
+          loadNextEvent();
+          return;
+        }
+        currentStage++;
+        loadNextEvent();
+      };
+      setTimeout(() => { btn.style.opacity = 1; }, index * 300);
+      choicesContainer.appendChild(btn);
+    });
+  }, 500);
+}
+
+function loadNextEvent(){
+  let eventsArray;
+  if(currentPhase === "prologue") eventsArray = prologueEvents;
+  else if(currentPhase === "unification") eventsArray = unificationEvents;
+  else if(currentPhase === "war") eventsArray = warEvents;
+  else if(currentPhase === "internal") eventsArray = internalEvents;
+  else if(currentPhase === "final") eventsArray = finalEvents;
+  
+  if(currentStage < eventsArray.length){
+    loadEvent(eventsArray[currentStage]);
+  } else {
+    if(currentPhase !== "final"){
+      if(currentPhase === "prologue") currentPhase = "unification";
+      else if(currentPhase === "unification") {
+        path = "internal";
+        currentPhase = "internal";
+      } else currentPhase = "final";
+      currentStage = 0;
+      loadNextEvent();
+    }
+  }
+}
+
+function resolveEnding(finalChoice){
+  for(let ending of endings){
+    if(ending.condition(stats, finalChoice, path)){
+      loadEnding(ending);
+      safePlay(document.getElementById("winSound"));
+      return;
+    }
+  }
+}
+
+function loadEnding(ending){
+  const img = document.getElementById("eventImage");
+  const text = document.getElementById("eventText");
+  const choicesContainer = document.getElementById("choices");
+  img.style.opacity = 0;
+  text.style.opacity = 0;
+  choicesContainer.innerHTML = "";
+  document.body.style.background = ending.bgColor;
+  setTimeout(() => {
+    img.src = ending.image;
+    text.innerText = ending.text;
+    img.style.opacity = 1;
+    text.style.opacity = 1;
+    let btn = document.createElement("button");
+    btn.innerText = "Начать заново";
+    btn.style.opacity = 0;
+    btn.onclick = () => location.reload();
+    setTimeout(() => {btn.style.opacity = 1;}, 300);
+    choicesContainer.appendChild(btn);
+  }, 500);
+}
+
+// ПРОЛОГ
+let video = document.getElementById("introVideo");
+let fade = document.getElementById("fade");
+function playVideo(){ safePlay(video); }
+video.onended = startTransition;
+function skipVideo(){ startTransition(); }
+let transitionStarted = false;
+function startTransition(){
+  if (transitionStarted) return;
+  transitionStarted = true;
+  fade.classList.add("fade-in");
+  setTimeout(() => {
+    startGame();
+    fade.classList.remove("fade-in");
+  }, 1500);
+}
+function startGame(){
+  video.pause();
+  video.currentTime = 0;
+  document.getElementById("prologue").style.display = "none";
+  document.getElementById("stats").style.display = "block";
+  document.getElementById("eventImage").style.display = "block";
+  document.getElementById("eventText").style.display = "block";
+  document.getElementById("choices").style.display = "block";
+  let bg = document.getElementById("bgMusic"); bg.volume = 0; safePlay(bg);
+  let wind = document.getElementById("wind"); wind.volume = 0; safePlay(wind);
+  fadeInAudio(bg, 0.6);
+  fadeInAudio(wind, 0.4);
+  updateStats();
+  loadNextEvent();
+}
+function fadeInAudio(audio, target){
+  let vol = 0;
+  let interval = setInterval(() => {
+    if(vol < target){ vol += 0.02; audio.volume = Math.min(vol, target); }
+    else{ clearInterval(interval); }
+  }, 100);
+}
+</script>
+</body>
+</html>

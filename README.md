@@ -1,1 +1,0 @@
-# sultanamangholov2003-ops.github.io
