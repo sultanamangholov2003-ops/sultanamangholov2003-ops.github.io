@@ -812,14 +812,35 @@ function playVideo(){ safePlay(video); }
 video.onended = startTransition;
 function skipVideo(){ startTransition(); }
 let transitionStarted = false;
-function startTransition(){
+async function exitPrologueFullscreen(){
+  // Desktop Fullscreen API, including older Safari.
+  try {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      await document.exitFullscreen();
+    } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+      await document.webkitExitFullscreen();
+    }
+  } catch (_) {
+    // Keep the game usable if the browser has already left fullscreen.
+  }
+  // iPhone/iPad use a separate native video fullscreen player.
+  try {
+    if (video.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
+      video.webkitExitFullscreen();
+    }
+  } catch (_) {}
+}
+async function startTransition(){
   if (transitionStarted) return;
   transitionStarted = true;
+  video.pause();
+  await exitPrologueFullscreen();
+  fade.style.transition = "opacity 0.3s ease";
   fade.classList.add("fade-in");
   setTimeout(() => {
     startGame();
     fade.classList.remove("fade-in");
-  }, 1500);
+  }, 300);
 }
 function startGame(){
   video.pause();
