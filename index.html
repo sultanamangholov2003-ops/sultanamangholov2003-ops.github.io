@@ -89,6 +89,35 @@ button:hover{
   #eventText { font-size: 21px; }
   #choices button { display: block; width: calc(100% - 32px); margin: 12px 16px; }
 }
+
+/* Readable decision feedback without changing the original visual theme. */
+#stats {max-width:1100px;margin:20px auto;padding:0 16px;box-sizing:border-box;}
+.chapter-progress {color:#e6c98c;font-size:16px;letter-spacing:.03em;}
+.stat-grid {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;}
+.stat-tile {background:#ffffff0c;border:1px solid #ffffff22;border-radius:10px;padding:12px 6px;}
+.stat-tile span {display:block;color:#c9c9c9;font-size:14px;margin-bottom:6px;}
+.stat-tile strong {font-size:19px;}
+.stat-low {border-color:#e7a568;background:#6a291d55;}
+.warning {color:#ffcb9d;line-height:1.5;font-size:16px;}
+#eventText {font-size:23px;line-height:1.5;font-weight:500;}
+#outcomePanel {max-width:1000px;margin:20px auto;padding:22px;box-sizing:border-box;background:#171b20;border:1px solid #b99a6066;border-radius:14px;text-align:left;line-height:1.65;font-size:18px;}
+#outcomePanel[hidden] {display:none;}
+#outcomePanel h3 {margin:0 0 12px;color:#e6c98c;font-size:21px;}
+#outcomePanel p {margin:10px 0;}
+#outcomePanel button {opacity:1;font-size:16px;}
+#outcomePanel a {color:#e6c98c;overflow-wrap:anywhere;}
+.selected-decision {color:#c4c9ce;font-size:16px;}
+.effect-list {display:flex;flex-wrap:wrap;gap:8px;margin:16px 0;}
+.effect-list span {padding:6px 10px;border-radius:6px;background:#ffffff09;}
+.effect-positive {color:#a6e2b2;}.effect-negative {color:#ffc097;}
+.recovery-note,.story-note {font-size:15px;color:#bdc5ce;}
+#choices button {opacity:1;white-space:normal;line-height:1.4;border:1px solid #ffffff38;border-radius:8px;background:#262d35;color:#fff;}
+#choices button:hover {background:#354150;transform:translateY(-1px);}
+#choices button:disabled {opacity:.5;cursor:default;transform:none;}
+#choices .continue-button {background:#bfa16b;color:#171b20;font-weight:700;min-width:220px;}
+button:focus-visible {outline:3px solid #e6c98c;outline-offset:3px;}
+@media(max-width:650px){.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr));}#outcomePanel{margin:16px;padding:16px;font-size:17px;}#eventText{font-size:20px;}#stats{padding:0 16px;}.stat-tile span{font-size:12px;}}
+
 </style>
 </head>
 <body>
@@ -97,7 +126,7 @@ button:hover{
 <div id="prologue">
     <h1>Пролог</h1>
     <p>История начинается в бескрайней степи. Из изгнания и унижения рождается империя.</p>
-    <video id="introVideo" controls preload="metadata" playsinline>
+    <video id="introVideo" controls preload="metadata" playsinline webkit-playsinline>
         <source data-asset="prologue.mp4" type="video/mp4">
     </video>
     <div>
@@ -109,6 +138,7 @@ button:hover{
 <div id="stats"></div>
 <img id="eventImage" src="">
 <h2 id="eventText"></h2>
+<section id="outcomePanel" hidden aria-live="polite" aria-label="Последствия решения"></section>
 <div id="choices"></div>
 <audio preload="none" id="bgMusic" data-asset="background.mp3" loop></audio>
 <audio preload="none" id="wind" data-asset="wind.mp3" loop></audio>
@@ -130,7 +160,7 @@ function safePlay(element) {
   } catch (_) {}
 }
 
-let stats = {authority:50, loyalty:50, army:50, resources:50, stability:50};
+let stats = {authority:60, loyalty:60, army:60, resources:60, stability:60};
 let currentPhase = "prologue";
 let currentStage = 0;
 let path = null;
@@ -667,143 +697,337 @@ const endings = [
   }
 ];
 
+// Story and pacing revision. Added everyday episodes are illustrative reconstructions.
+const labels = {authority:'Авторитет',loyalty:'Лояльность',army:'Армия',resources:'Ресурсы',stability:'Стабильность'};
+const phaseNames = {prologue:'Первые испытания',unification:'Объединение племён',war:'Военные походы',internal:'Внутренняя политика',final:'Наследие хана'};
+const memory = {};
+const campsUsed = new Set();
+const councilsUsed = new Set();
+let decisionLocked = false;
+let renderVersion = 0;
+let pendingContinuation = null;
+let currentEvent = null;
+let gameOver = false;
+let successor = null;
+let warReturn = false;
+let routeChosen = false;
+let decisionsMade = 0;
+
+function scene(id,text,image,choices){
+ return {id,text,image:embeddedAssets[image],bgColor:'#222831',reconstruction:true,choices};
+}
+function option(text,effect,outcome,extra={}){return {text,effect,outcome,...extra};}
+
+prologueEvents.splice(3,0,scene('winter','Запасов мало, впереди холодные дни. Семье нужно решить, как пережить трудный сезон.','images/prologue3.jpg',[
+ option('Распределить еду поровну',{loyalty:12,stability:8,resources:-4},'Общий запас распределён. Взаимная поддержка укрепила семью, хотя припасов стало меньше.'),
+ option('Организовать совместную охоту',{resources:16,army:-5},'Охотники принесли продовольствие. Добыча пополнила запас, но людям нужен отдых.'),
+ option('Обменять часть имущества на продовольствие',{resources:12,authority:-4},'Обмен помог пережить нужду. Пришлось уступить часть имущества, зато появились припасы.')
+]));
+prologueEvents.splice(5,0,scene('companions','После освобождения Тэмуджин ищет людей, которым можно доверять. Одних обещаний недостаточно: будущим соратникам нужны взаимная помощь и общая цель.','images/prologue4.jpg',[
+ option('Помочь небольшой группе спутников',{loyalty:15,resources:-6},'Спутники получили помощь и согласились держаться вместе. Личное доверие стало основой будущего союза.'),
+ option('Предложить совместно охранять стойбище',{army:10,stability:8,resources:-4},'Совместная охрана дала людям опыт взаимодействия и сделала стойбище безопаснее.'),
+ option('Сначала договориться о взаимных обязанностях',{authority:10,loyalty:8},'Обязанности определены заранее. Каждый понимает, какую помощь получит и что должен сделать сам.')
+]));
+
+const marriage = unificationEvents[0];
+marriage.text='Тэмуджин женится на Бортэ. Семейные связи могут помочь ему найти поддержку, но молодой семье нужны защита и собственное хозяйство.';
+marriage.choices=[
+ option('Укрепить связи с семьёй Бортэ',{loyalty:14,resources:-6},'Семейные связи стали крепче. Обмен дарами потребовал припасов, но дал молодой семье поддержку.'),
+ option('Заняться безопасностью своего стойбища',{stability:12,resources:-4},'Стойбище лучше подготовлено к трудностям. Однако одной местной защиты недостаточно перед большим противником.'),
+ option('Искать поддержку Тоорила',{authority:10,loyalty:8,resources:-6},'Вы отправили дары и просьбу о поддержке. Это шаг к союзу, а не передача Бортэ в дар: брак уже заключён.')
+];
+unificationEvents[1].choices[0].outcome='Вы решили добиваться освобождения Бортэ силой. Для похода всё равно придётся собрать людей и найти союзников.';
+unificationEvents[1].choices[1].outcome='Вы отправили гонцов союзникам. Ожидание позволяет подготовить совместный поход, хотя часть сторонников требует немедленных действий.';
+unificationEvents[1].choices[2].outcome='Вы попытались добиться освобождения Бортэ переговорами. В рамках этого сценария переговоры не дали результата: теперь потребуется помощь союзников.';
+unificationEvents[2].text=()=>{
+ const c=memory['unification2'];
+ return (c===2?'Переговоры с меркитами не принесли освобождения Бортэ. ':c===1?'Гонцы вернулись: союзники готовы помочь. ':'Для решительного выступления удалось собрать союзников. ')+'Тэмуджин, Тоорил и Джамуха готовят совместный поход. Как действовать?';
+};
+unificationEvents[3].text='После совместных действий союз с Тоорилом нужно укрепить. Как распределить обязательства между союзниками?';
+unificationEvents[3].choices=[
+ option('Договориться о взаимной военной помощи',{loyalty:15,army:5},'Союзники согласовали взаимную помощь. Такой союз полезен, пока обе стороны соблюдают договорённость.'),
+ option('Отстаивать самостоятельность своего отряда',{authority:12,loyalty:-6},'Самостоятельность сохранена. Сторонники видят решительность, но союзникам труднее согласовывать действия.'),
+ option('Поддерживать союз дарами',{resources:-10,stability:12},'Обмен дарами снизил напряжение. За временное спокойствие пришлось заплатить частью припасов.')
+];
+unificationEvents[5].text='Союз с Тоорилом разрушается: интересы правителей и их окружения расходятся. Как подготовиться к возможному столкновению?';
+unificationEvents[5].choices=[
+ option('Усилить охрану и проверить верность отрядов',{army:12,resources:-8},'Вы усилили подготовку. Отряды лучше готовы к столкновению, но содержание воинов требует припасов.'),
+ option('Попытаться сохранить переговоры',{loyalty:10,stability:-5},'Попытка договориться удержала часть сторонников от раскола. Однако соперничество не исчезло, и конфликт продолжается.'),
+ option('Увести людей и сохранить силы',{stability:12,authority:-6},'Люди получили передышку. Открытого столкновения пока удалось избежать, но борьба за влияние продолжается.')
+];
+unificationEvents[7].text='1204 г. Борьба с найманами меняет соотношение сил в степи. После победы нужно решить, как обращаться с побеждёнными и их людьми.';
+unificationEvents[7].choices[0].text='Наказать руководителей сопротивления';
+unificationEvents[7].choices[2].text='Разоружить противников и отпустить';
+const council1206=unificationEvents[9];
+council1206.text='1206 г. На курултае Тэмуджин провозглашён Чингисханом. Объединение племён завершено. Как укрепить новый порядок перед выбором дальнейшего пути?';
+council1206.choices=[
+ option('Созвать общий совет',{loyalty:10,stability:10},'Представители отрядов обсудили общий порядок. Теперь можно определить главный приоритет: походы или внутреннее управление.'),
+ option('Наградить соратников',{authority:12,loyalty:8,resources:-6},'Соратники получили награды. Признание их заслуг укрепило поддержку; впереди выбор направления политики.'),
+ option('Провозгласить общие правила',{stability:15,loyalty:-5},'Общие правила укрепляют управление. Само это решение не выбирает маршрут: направление политики вы определите следующим шагом.')
+];
+unificationEvents.splice(1,0,scene('household','Семья выросла, вместе с ней растёт стойбище. Нужно распределить заботу о стадах, запасах и охране.','images/unification1.jpg',[
+ option('Разделить обязанности между семьями',{stability:12,loyalty:8},'Семьи договорились о работе и помощи. Порядок уменьшил число споров и укрепил доверие.'),
+ option('Создать общий продовольственный запас',{resources:18,authority:-5},'Часть имущества переведена в общий запас. Припасов больше, хотя распоряжаться ими единолично труднее.'),
+ option('Поставить охрану на подходах',{army:12,resources:-6},'Охрана стала надёжнее. Её содержание потребует регулярного снабжения.')
+]));
+unificationEvents.splice(5,0,scene('envoys','После соглашения с союзниками в стойбище прибывают новые посланники. Они хотят понять, на каких условиях можно присоединиться к вам.','images/unification4.jpg',[
+ option('Предложить взаимную защиту',{loyalty:15,army:6},'Посланники передадут предложение о взаимной защите. Часть людей готова присоединиться на этих условиях.'),
+ option('Обсудить обмен скотом и припасами',{resources:16,stability:6},'Обмен создаёт общую выгоду. Новые связи помогают снабжению и снижают напряжение.'),
+ option('Потребовать строгого подчинения',{authority:16,loyalty:-9},'Ваши требования подчёркивают власть. Но часть соседей опасается потерять самостоятельность.')
+]));
+unificationEvents.splice(unificationEvents.length-1,0,scene('commanders','Перед общим курултаем вожди спорят о командовании. Старые родовые связи сталкиваются с необходимостью действовать вместе.','images/unification10.jpg',[
+ option('Выдвинуть опытных командиров',{army:14,loyalty:-5},'Опытные люди получили командование. Отрядам проще действовать вместе, хотя часть родовой знати недовольна.'),
+ option('Договориться о совместном совете',{loyalty:12,stability:8},'Вожди получили возможность обсуждать решения. Согласование занимает время, но снижает риск раскола.'),
+ option('Лично распределить обязанности',{authority:14,resources:-5},'Обязанности распределены приказом. Управление стало определённее, а организация потребовала дополнительных средств.')
+]));
+
+warEvents[3].text='1218 г. Отрарский инцидент и последующий дипломатический конфликт обострили отношения с Хорезмом. Как ответить на кризис?';
+warEvents[4].text=()=> (memory.war4===1?'Требование компенсации не разрешило конфликт. ':memory.war4===2?'Попытка отложить ответ не сняла напряжение. ':'Начался большой поход против Хорезма. ')+'В ходе войны осада Отрара завершилась взятием города. Как поступить с руководителем обороны?';
+warEvents[9].text='1226–1227 гг. Последний поход против Си Ся требует всё больше сил. Как завершить этот этап?';
+warEvents[9].choices[2].outcome='Вы решили вернуть людей из похода и сохранить припасы. Военные решения уступают место вопросам здоровья хана и будущего государства.';
+const oldSuccession=internalEvents[9];
+oldSuccession.text='По мере старения хана вопрос передачи власти становится всё важнее. Какой порядок наследования вы предложите?';
+oldSuccession.choices=[
+ option('Назначить Угэдэя преемником',{stability:20},'Вы назвали Угэдэя преемником. В финале потребуется обеспечить поддержку этого решения, а не выбирать его заново.',{succession:'ogedei'}),
+ option('Передать решение курултаю',{loyalty:15},'Вы оставили выбор общему собранию. Дальше придётся определить порядок его созыва.',{succession:'council'}),
+ option('Установить критерии выбора по заслугам',{authority:15,stability:-8},'Вы предложили оценивать претендентов по заслугам. Чтобы избежать спора, критерии потребуется закрепить.',{succession:'merit'})
+];
+internalEvents[8].text='Между царевичами и их окружением распределяются земли и обязанности. Как сохранить связь улусов с общим центром?';
+finalEvents[0].text=()=>warReturn?'После возвращения из похода здоровье хана ухудшается. Нужно передать часть обязанностей и подготовить государство к переменам.':path==='internal'?'1227 г. Здоровье хана ухудшается. Созданному порядку предстоит испытание передачей власти. Как организовать управление?':'1227 г. Во время последнего похода здоровье хана ухудшается. Как сохранить управление в этих условиях?';
+finalEvents[0].choices=[
+ option('Продолжать лично руководить',{authority:16,army:8,stability:-10},'Личное руководство сохраняет влияние хана, но откладывает подготовку к передаче полномочий.'),
+ option('Сосредоточиться на подготовке передачи власти',{stability:15,resources:8},'Вы выделили время для передачи дел. Управление стало устойчивее, а часть расходов сократилась.'),
+ option('Передать текущие дела сыновьям и советникам',{loyalty:15,authority:-8},'Сыновья и советники получили практический опыт. Управление меньше зависит от одного человека.')
+];
+const successionLabels={ogedei:'Угэдэй назначен преемником',council:'выбор оставлен курултаю',merit:'предложен выбор по заслугам'};
+finalEvents[1].text=()=>successor?'Ранее '+successionLabels[successor]+'. Теперь нужно обеспечить исполнение этого решения. Как подготовить переход власти?':'Хан собирает сыновей и нойонов. Порядок передачи верховной власти ещё не определён. Какое решение принять?';
+finalEvents[1].choices=()=>successor?[
+ option('Добиться согласия влиятельных нойонов',{loyalty:15,stability:10},'Нойоны обсудили принятое решение и подтвердили готовность соблюдать договорённость.'),
+ option('Заранее распределить обязанности',{stability:16,resources:-5},'Обязанности на переходный период определены. Это снижает риск спора и перебоев в управлении.'),
+ option('Закрепить решение общим приказом',{authority:15,loyalty:-5},'Решение объявлено обязательным. Оно стало яснее, но приказ сам по себе не устраняет недовольство.')
+]:[
+ option('Назначить Угэдэя преемником',{stability:20},'Вы назвали Угэдэя. Следующие события будут касаться поддержки и исполнения этого решения.',{succession:'ogedei'}),
+ option('Передать выбор курултаю',{loyalty:15},'Выбор оставлен курултаю. Следующий шаг — подготовить собрание и удержать согласие сторон.',{succession:'council'}),
+ option('Согласовать критерии выбора по заслугам',{authority:15,stability:-8},'Критерии предложены. Их нужно разъяснить окружению, чтобы спор не перерос в раскол.',{succession:'merit'})
+];
+finalEvents[3].text=()=>'В окружении царевичей возник спор о полномочиях. Принятый порядок — '+(successionLabels[successor]||'передача власти ещё обсуждается')+'. Как добиться его соблюдения?';
+finalEvents[3].choices=[
+ option('Примирить стороны и подтвердить договорённость',{stability:20,loyalty:8},'Стороны вернулись к ранее принятому порядку. Договорённость стала устойчивее.'),
+ option('Разделить текущие обязанности без нового выбора хана',{loyalty:15,resources:-5},'Окружение получило конкретные обязанности. Это уменьшило борьбу за немедленное влияние.'),
+ option('Потребовать исполнения принятого решения',{authority:15,loyalty:-8},'Вы настояли на исполнении решения. Управление стало определённее, хотя часть участников осталась недовольна.')
+];
+finalEvents[7].text='1227 г. Великий хан умирает. Начинается переход власти. Как сообщить об этом людям и сохранить порядок?';
+finalEvents[8].text=()=>'Весть о смерти дошла до улусов. '+(successor==='ogedei'?'Предстоит обеспечить поддержку назначенного Угэдэя.':successor==='council'?'Необходимо организовать обещанный курултай.':'Нужно обеспечить соблюдение согласованных правил выбора.')+' Как удержать государство от раскола?';
+finalEvents[8].choices=[
+ option('Охранять порядок, не допуская самоуправства',{authority:12,stability:8,resources:-5},'Охрана поддерживает порядок в переходный период. Её содержание требует ресурсов.'),
+ option('Собрать представителей улусов',{loyalty:20,resources:-8},'Представители получили возможность подтвердить общую договорённость. Созыв собрания потребовал припасов.'),
+ option('Договориться о временных полномочиях на местах',{stability:15,authority:-8},'Временные полномочия помогли сохранить управление в улусах. Центральное влияние при этом ослабло.')
+];
+endings[0].text='Вы выбрали путь завоеваний. Сильная армия даёт наследникам возможность продолжать походы, но удержание земель потребует ресурсов и устойчивого управления.';
+
+const resultNotes={
+ prologue1:['Пророчество укрепило уверенность семьи, но приготовления потребовали припасов.','Вы сосредоточились на повседневных делах: спокойствия стало больше.','Обряд поддержал единство семьи, но уменьшил запас скота.'],
+ prologue2:['Обещание мести укрепило решительность, но часть близких опасается нового конфликта.','Укрытие дало передышку; открыто действовать пока труднее.','Родственные связи дали поддержку. Приём и дары потребовали запасов.'],
+ prologue3:['Добыча помогла семье, но рискованная охота нарушила привычный порядок.','Добытые припасы усилили отряд, но поступок подорвал доверие.','Взаимная помощь укрепила семью. Личное влияние пришлось уступить общему решению.'],
+ prologue4:['Удалось вырваться из плена, потратив силы на побег.','Помощь союзников дала возможность освободиться и укрепила доверие.','Освобождение удалось выторговать ценой припасов.'],
+ prologue5:['Жестокое решение усилило страх перед вашей властью и подорвало доверие семьи.','Прощение сохранило близкие связи, но семейный спор остаётся трудным испытанием.','Изгнание остановило спор и укрепило порядок, не устранив тяжесть семейного конфликта.'],
+ unification3:['Быстрая атака помогла освободить Бортэ; часть союзников недовольна спешкой.','Давление на лагерь помогло освободить Бортэ и получить припасы, но затянуло столкновение.','Совместная победа привела к освобождению Бортэ. Равный раздел добычи укрепил союз, ограничив личное влияние.'],
+ unification5:['Личная атака показала решительность, но отрядам потребовалось восстановление.','Манёвр дал военное преимущество, израсходовав часть запасов.','Отход сохранил порядок и позволил подготовить ответ, но вызвал недовольство части людей.'],
+ unification7:['Противник разгромлен, однако жестокое обращение с побеждёнными усилило напряжение.','Пленение вождей оставило возможность переговоров, но охрана потребовала припасов.','Распределение обязанностей укрепило порядок, ограничив личный контроль.'],
+ unification8:['Руководители сопротивления наказаны. Это усилило власть, но вызвало страх и недоверие.','Побеждённым предложено место в общем порядке. Для их включения потребовалось перераспределить силы.','Противники разоружены и отпущены. Содержание пленных не требуется, но дальнейшие отношения остаются неопределёнными.'],
+ unification9:['Массовое наказание укрепило власть через страх и снизило доверие.','Индивидуальное рассмотрение дел позволило сохранить часть людей, но вызвало споры.','Пощада укрепила готовность сотрудничать, хотя часть сторонников сочла решение слабостью.'],
+ war1:['Набег дал военный опыт, израсходовав припасы.','Осада потребовала сил, но позволила организовать действия отрядов.','Требование подчинения усилило влияние, вызвав недовольство противников.'],
+ war2:['Новые союзники усилили отряды и расширили поддержку.','Дань пополнила запас, но договориться о ней пришлось ценой уступок.','Насилие устранило часть противников и усилило напряжение в покорённых землях.'],
+ war3:['Атака укрепила авторитет, но утомила армию.','Манёвр дал преимущество, потребовав дополнительных припасов.','Длительные действия укрепили организацию, но вызвали усталость и недовольство.'],
+ war4:['Подготовка большой войны укрепила решительность и потребовала значительных запасов.','Вы потребовали урегулировать конфликт. Сторонники поддержали попытку, но напряжение сохранилось.','Вы отложили военный ответ и сохранили припасы. Часть окружения сочла это уступкой.'],
+ war5:['Жестокая расправа усилила страх перед властью и подорвала доверие.','Пленный остался под охраной. Армия сохранила влияние, но спор о наказании продолжается.','Пощада дала возможность примирения и вызвала недовольство сторонников сурового ответа.'],
+ war6:['Террор усилил страх перед властью, сделав положение в городах менее устойчивым.','Получена дань. Часть сил отвлечена на её сбор и охрану.','Ремесленникам предложена работа и защита. Для переселения и устройства потребовались припасы.'],
+ war7:['Разрушение города усилило военное давление и уменьшило доверие к вашей власти.','Ремесленники и их навыки сохранены. Это помогает восстановлению хозяйства.','Добыча распределена. Запасы выросли, но личный контроль над ними уменьшился.'],
+ war8:['Решительная атака усилила влияние, но утомила войско.','Отход сохранил запасы и позволил восстановить порядок.','Вы предложили переговоры. Это снизило напряжение среди людей, потребовав военных уступок.'],
+ war9:['Разгром противника усилил армию, но сделал положение в регионе менее устойчивым.','Поход завершён получением дани. Часть союзников недовольна распределением выгоды.','Предложение союза потребовало уступок, но расширило поддержку.'],
+ war10:['Усилия сосредоточены на завершении похода. Впереди вопросы передачи власти.','Переговоры снизили напряжение и дали возможность завершить военный этап.','Вы вернули людей и сохранили часть запасов. Теперь внимание обращено к будущему государства.'],
+ internal1:['Общие правила применяются строже. Порядок укрепился, но выросло недовольство.','Местные обычаи учтены. Доверие выросло ценой уступок центральной власти.','Правила получили особое значение. Их проведение потребовало средств.'],
+ internal2:['Отряды reorganизованы по единому порядку. Военная сила выросла, но часть людей недовольна.','Добровольное участие поддержано наградами. Доверие выросло, запасы уменьшились.','Новый порядок согласован с традициями. Устойчивость выросла ценой военных уступок.'],
+ internal3:['Сопротивление подавлено. Страх усилил власть и ослабил доверие.','Знати предоставлены привилегии. Поддержка выросла, но общий порядок стал менее единым.','Опыт людей проверяется на практике. Войско усиливается, расходуя припасы.'],
+ internal4:['Создание сети связи улучшило снабжение и согласованность управления.','Ямщики получили награды. Их поддержка укрепилась, но запас средств сократился.','Связь подчинена центру. Для её обслуживания пришлось отвлечь людей от войска.'],
+ internal5:['Учёт помог собирать припасы, но усилил нагрузку на население.','Местные чиновники поддержали управление, сохранив часть самостоятельности.','Учёт согласован с общими правилами. Организация потребовала средств.'],
+ internal6:['Охрана помогла торговле. Для неё пришлось отвлечь часть воинов.','Торговые сборы пополнили запас, вызвав недовольство плательщиков.','Свободный проезд расширил поддержку, но сделал контроль труднее.'],
+ internal7:['Религиозные споры ограничены. Это помогает сохранять спокойствие между общинами.','Представители традиционных верований получили влияние в совете. Поддержка выросла ценой уступок.','Усиление контроля укрепило власть, вызвав напряжение в общинах.'],
+ internal8:['Суровое наказание устранило часть злоупотреблений, но усилило страх и недоверие.','Проверяющие восстановили часть доходов и укрепили порядок.','Признание нарушений позволило договориться о возврате к службе. Личный авторитет при этом снизился.'],
+ internal9:['Равное распределение снизило напряжение, хотя часть окружения недовольна.','Распределение по заслугам укрепило личное влияние и вызвало спор о справедливости.','Центр сохранил контроль над поступлениями, выделив меньше сил улусам.'],
+ final3:['Строгость повысила влияние власти, но вызвала недовольство.','Смягчение решений укрепило доверие и устойчивость.','Единство объявлено обязательным. Для его поддержания пришлось перераспределить военные силы.'],
+ final5:['Решительность усилила военное давление, но обострила ситуацию.','Соглашение пополнило запасы и снизило напряжение.','Передача командования дала наследникам опыт и укрепила их поддержку.'],
+ final6:['Наказание усилило страх перед властью и уменьшило доверие.','Расследование позволило проверить обвинения. Для работы потребовались средства.','Прощение сохранило поддержку части окружения, но ослабило впечатление о твёрдости власти.'],
+ final7:['Вы обозначили цель дальнейшего расширения. Наследники получили ясный военный ориентир.','Приоритет единства и мира укрепил поддержку и устойчивость.','Опора на военную силу усилила решительность, но снизила доверие.'],
+ final8:['Подготовлены общие траурные церемонии. Это помогло сохранить порядок.','Сообщение о смерти временно отложено ради управляемости войска, но доверие к власти снизилось.','Весть объявлена сразу. Открытость укрепила доверие, хотя переходный период вызвал тревогу.']
+};
+resultNotes.internal2[0]='Отряды организованы по единому порядку. Военная сила выросла, но часть людей недовольна.';
+
+const phaseEvents={prologue:prologueEvents,unification:unificationEvents,war:warEvents,internal:internalEvents,final:finalEvents};
+for(const events of Object.values(phaseEvents))for(const e of events){
+ if(!e.id)e.id=e.image.split('/').pop().replace('.jpg','');
+ if(Array.isArray(e.choices))e.choices.forEach((c,i)=>{if(!c.outcome&&resultNotes[e.id])c.outcome=resultNotes[e.id][i];delete c.next;});
+}
+// Internal-policy finale has different consequences from the military finale.
+const finalPolicyChoices=finalEvents[4].choices;
+finalEvents[4].choices=()=>{
+ const cs=finalPolicyChoices();
+ if(path==='internal'){
+  cs[0].outcome='Дополнительные налоги пополнили казну, вызвав недовольство плательщиков.';
+  cs[1].outcome='Льготы укрепили поддержку, уменьшив текущие поступления.';
+  cs[2].outcome='Центр принял управление поступлениями. Согласованность и влияние власти выросли.';
+ }else cs.forEach((c,i)=>c.outcome=resultNotes.final5[i]);
+ return cs;
+};
+
+function appliedEffect(effect){
+ const delta={};
+ for(const [key,value] of Object.entries(effect||{})){
+  const step=value<0?-Math.ceil(Math.abs(value)*0.55):Math.ceil(value*0.65);
+  const before=stats[key];stats[key]=Math.max(0,Math.min(100,before+step));delta[key]=stats[key]-before;
+ }
+ return delta;
+}
+function applyEffect(effect){return appliedEffect(effect);}
+function lowStats(){return Object.keys(labels).filter(k=>stats[k]<=20);}
 function updateStats(){
-  document.getElementById("stats").innerHTML =
-    `Авторитет: ${stats.authority} |
-    Лояльность: ${stats.loyalty} |
-    Армия: ${stats.army} |
-    Ресурсы: ${stats.resources} |
-    Стабильность: ${stats.stability}`;
+ const box=document.getElementById('stats');box.innerHTML='';
+ const progress=document.createElement('p');progress.className='chapter-progress';
+ const events=phaseEvents[currentPhase];
+ progress.textContent=phaseNames[currentPhase]+(currentStage<events.length?' · Событие '+(currentStage+1)+' из '+events.length:' · Этап завершён');
+ box.appendChild(progress);
+ const grid=document.createElement('div');grid.className='stat-grid';
+ for(const key of Object.keys(labels)){
+  const tile=document.createElement('div');tile.className='stat-tile'+(stats[key]<=20?' stat-low':'');
+  const title=document.createElement('span');title.textContent=labels[key];
+  const value=document.createElement('strong');value.textContent=stats[key]+' / 100';
+  tile.appendChild(title);tile.appendChild(value);grid.appendChild(tile);
+ }
+ box.appendChild(grid);
+ const low=lowStats();if(low.length){const w=document.createElement('p');w.className='warning';w.setAttribute('role','status');w.textContent='⚠ На исходе: '+low.map(k=>labels[k].toLowerCase()).join(', ')+'. Следующие потери могут привести к поражению. Воспользуйтесь советом или передышкой.';box.appendChild(w);}
 }
-
-function applyEffect(effect){
-  for(let key in effect){ stats[key] += effect[key]; }
+function actionButton(text,callback){
+ const b=document.createElement('button');b.textContent=text;b.style.opacity=1;
+ b.onclick=()=>{if(b.disabled)return;b.disabled=true;callback();};return b;
 }
-
+function clearOutcome(){const panel=document.getElementById('outcomePanel');panel.hidden=true;panel.innerHTML='';}
+function showRecovery(panel){
+ const low=lowStats();if(!low.length||councilsUsed.has(currentPhase)||gameOver)return;
+ panel.appendChild(actionButton('Созвать совет — восстановить ослабленные показатели',()=>{
+  councilsUsed.add(currentPhase);
+  const changes={};for(const key of low){const before=stats[key];stats[key]=Math.min(100,stats[key]+20);changes[key]=stats[key]-before;}
+  const note=document.createElement('p');note.className='recovery-note';note.textContent='Совет перераспределил помощь: '+Object.entries(changes).map(([k,v])=>labels[k]+' +'+v).join(', ')+'. Такая помощь доступна один раз за этап.';
+  panel.appendChild(note);updateStats();
+ }));
+}
+function showOutcome(event,choice,delta,continuation){
+ const panel=document.getElementById('outcomePanel');panel.innerHTML='';panel.hidden=false;
+ const title=document.createElement('h3');title.textContent='Последствия решения';panel.appendChild(title);
+ const selected=document.createElement('p');selected.className='selected-decision';selected.textContent='Ваш выбор: '+choice.text;panel.appendChild(selected);
+ const description=document.createElement('p');description.textContent=choice.outcome||'Вы выбрали будущий курс государства. Итог определяется накопленными показателями и вашим последним решением.';panel.appendChild(description);
+ const changes=document.createElement('div');changes.className='effect-list';
+ const entries=Object.entries(delta).filter(([k,v])=>v!==0);
+ if(!entries.length){const n=document.createElement('span');n.textContent='Показатели не изменились';changes.appendChild(n);}
+ for(const [key,value] of entries){const chip=document.createElement('span');chip.className=value>0?'effect-positive':'effect-negative';chip.textContent=labels[key]+' '+(value>0?'+':'')+value;changes.appendChild(chip);}
+ panel.appendChild(changes);
+ const choices=document.getElementById('choices');choices.innerHTML='';
+ pendingContinuation=continuation;
+ if(!checkDefeat()){
+  showRecovery(panel);
+  const next=actionButton(choice.final?'Посмотреть итог':'Продолжить',()=>{
+   if(!pendingContinuation)return;const resume=pendingContinuation;pendingContinuation=null;clearOutcome();resume();
+  });next.className='continue-button';choices.appendChild(next);next.focus({preventScroll:true});
+ }
+}
 function checkDefeat(){
-  if(stats.authority <= 0 || stats.loyalty <= 0 || stats.army <= 0 || stats.resources <= 0 || stats.stability <= 0){
-    document.getElementById("eventText").innerText = "Государство пало.";
-    safePlay(document.getElementById("loseSound"));
-    document.getElementById("choices").innerHTML = "";
-    return true;
-  }
-  return false;
+ if(!Object.keys(labels).some(k=>stats[k]<=0))return false;
+ gameOver=true;pendingContinuation=null;
+ const p=document.createElement('p');p.className='warning';p.textContent='Государство пало. Истощены: '+Object.keys(labels).filter(k=>stats[k]<=0).map(k=>labels[k].toLowerCase()).join(', ')+'. Попробуйте сохранить баланс и воспользоваться помощью до истощения показателей.';
+ document.getElementById('outcomePanel').appendChild(p);
+ const choices=document.getElementById('choices');choices.innerHTML='';choices.appendChild(actionButton('Начать заново',()=>location.reload()));
+ safePlay(document.getElementById('loseSound'));return true;
 }
-
 function loadEvent(event){
-  event = {...event,
-    text: typeof event.text === "function" ? event.text() : event.text,
-    choices: typeof event.choices === "function" ? event.choices() : event.choices
-  };
-  const img = document.getElementById("eventImage");
-  const text = document.getElementById("eventText");
-  const choicesContainer = document.getElementById("choices");
-  img.style.opacity = 0;
-  text.style.opacity = 0;
-  choicesContainer.innerHTML = "";
-  document.body.style.background = event.bgColor;
-  setTimeout(() => {
-    img.src = event.image;
-    text.innerText = event.text;
-    img.style.opacity = 1;
-    text.style.opacity = 1;
-    event.choices.forEach((choice, index) => {
-      let btn = document.createElement("button");
-      btn.innerText = choice.text;
-      btn.style.opacity = 0;
-      btn.onmouseover = () => btn.style.background = "#555";
-      btn.onmouseout = () => btn.style.background = "";
-      btn.onclick = function(){
-        safePlay(document.getElementById("clickSound"));
-        if(choice.effect) applyEffect(choice.effect);
-        updateStats();
-        if(checkDefeat()) return;
-        if(choice.final){
-          resolveEnding(choice);
-          return;
-        }
-        if(choice.next){
-          if(choice.next === "unification"){
-            currentPhase = "unification";
-            currentStage = 0;
-          } else if(choice.next === "war"){
-            path = "war";
-            currentPhase = "war";
-            currentStage = 0;
-          } else if(choice.next === "internal"){
-            path = "internal";
-            currentPhase = "internal";
-            currentStage = 0;
-          } else if(choice.next === "final"){
-            currentPhase = "final";
-            currentStage = 0;
-          }
-          loadNextEvent();
-          return;
-        }
-        currentStage++;
-        loadNextEvent();
-      };
-      setTimeout(() => { btn.style.opacity = 1; }, index * 300);
-      choicesContainer.appendChild(btn);
+ const version=++renderVersion;currentEvent=event;decisionLocked=true;clearOutcome();
+ const img=document.getElementById('eventImage');const text=document.getElementById('eventText');const choices=document.getElementById('choices');
+ choices.innerHTML='';img.style.opacity=0;text.style.opacity=0;document.body.style.background=event.bgColor;updateStats();
+ setTimeout(()=>{
+  if(version!==renderVersion)return;
+  img.src=event.image;img.alt=event.reconstruction?'Иллюстрация игрового эпизода':'Иллюстрация исторического сюжета';img.style.opacity=1;
+  text.textContent=(event.reconstruction?'Игровой эпизод · ':'')+(typeof event.text==='function'?event.text():event.text);text.style.opacity=1;
+  const cs=typeof event.choices==='function'?event.choices():event.choices;
+  cs.forEach((choice,index)=>{
+   const b=actionButton(choice.text,()=>{
+    if(decisionLocked||gameOver)return;decisionLocked=true;
+    for(const child of choices.children)child.disabled=true;
+    safePlay(document.getElementById('clickSound'));
+    memory[event.id]=index;
+    if(choice.succession)successor=choice.succession;
+    if(event.id==='war10'&&index===2)warReturn=true;
+    if(!event.isCamp)decisionsMade++;
+    const delta=appliedEffect(choice.effect);updateStats();
+    showOutcome(event,choice,delta,()=>{
+     if(choice.final){resolveEnding(choice);return;}
+     if(!event.isCamp)currentStage++;
+     loadNextEvent();
     });
-  }, 500);
+   });choices.appendChild(b);
+  });decisionLocked=false;
+ },220);
 }
-
+function showCamp(){
+ campsUsed.add(currentPhase);
+ const key=currentPhase==='prologue'?'images/prologue3.jpg':currentPhase==='war'?'images/war1.jpg':'images/internal6.jpg';
+ loadEvent({...scene('camp-'+currentPhase,'Путь продолжается. Перед следующими событиями можно устроить передышку, пополнить запас или сохранить темп. Это дополнительный игровой эпизод.',''+key,[
+  option('Пополнить продовольственный запас',{resources:28,loyalty:-3},'Отряды занялись снабжением. Запас вырос; ожидание вызвало небольшое недовольство.'),
+  option('Дать людям отдых и восстановить силы',{army:24,stability:12,resources:-4},'Отдых восстановил силы и порядок. На стоянке израсходована часть продовольствия.'),
+  option('Продолжить без остановки',{},'Вы сохранили темп. Дополнительного восстановления не произошло.')
+ ]),isCamp:true});
+}
+function showRouteChoice(){
+ ++renderVersion;decisionLocked=false;clearOutcome();updateStats();
+ document.getElementById('eventImage').src=embeddedAssets['images/unification10.jpg'];
+ document.getElementById('eventText').textContent='Объединение завершено. Выберите главный путь';
+ document.getElementById('eventText').style.opacity=1;document.getElementById('eventImage').style.opacity=1;
+ const panel=document.getElementById('outcomePanel');panel.hidden=false;
+ const note=document.createElement('p');note.textContent='В одном прохождении доступна одна ветка. Военные походы — 10 событий о внешних конфликтах и снабжении армии. Внутренняя политика — 10 событий об управлении, торговле и согласии. После выбранной ветки вас ждут 10 событий о наследии хана. Другой путь можно попробовать при новом прохождении.';panel.appendChild(note);
+ const choices=document.getElementById('choices');choices.innerHTML='';
+ for(const [value,label] of [['war','Военные походы'],['internal','Внутренняя политика']])choices.appendChild(actionButton(label,()=>{
+  if(routeChosen)return;routeChosen=true;path=value;currentPhase=value;currentStage=0;
+  stats.resources=Math.min(100,stats.resources+10);clearOutcome();loadNextEvent();
+ }));
+ const supplies=document.createElement('p');supplies.className='recovery-note';supplies.textContent='Перед новым этапом снабжение пополнит ресурсы на 10, но не выше 100.';panel.appendChild(supplies);
+}
 function loadNextEvent(){
-  let eventsArray;
-  if(currentPhase === "prologue") eventsArray = prologueEvents;
-  else if(currentPhase === "unification") eventsArray = unificationEvents;
-  else if(currentPhase === "war") eventsArray = warEvents;
-  else if(currentPhase === "internal") eventsArray = internalEvents;
-  else if(currentPhase === "final") eventsArray = finalEvents;
-  
-  if(currentStage < eventsArray.length){
-    loadEvent(eventsArray[currentStage]);
-  } else {
-    if(currentPhase !== "final"){
-      if(currentPhase === "prologue") currentPhase = "unification";
-      else if(currentPhase === "unification") {
-        path = "internal";
-        currentPhase = "internal";
-      } else currentPhase = "final";
-      currentStage = 0;
-      loadNextEvent();
-    }
-  }
+ if(gameOver)return;
+ const events=phaseEvents[currentPhase];
+ if(currentStage>=events.length){
+  if(currentPhase==='unification'){showRouteChoice();return;}
+  if(currentPhase==='prologue'){currentPhase='unification';currentStage=0;loadNextEvent();return;}
+  if(currentPhase==='war'||currentPhase==='internal'){currentPhase='final';currentStage=0;loadNextEvent();return;}
+  return;
+ }
+ if(currentPhase!=='final'&&currentStage===Math.floor(events.length/2)&&!campsUsed.has(currentPhase)){showCamp();return;}
+ loadEvent(events[currentStage]);
 }
-
-function resolveEnding(finalChoice){
-  for(let ending of endings){
-    if(ending.condition(stats, finalChoice, path)){
-      loadEnding(ending);
-      safePlay(document.getElementById("winSound"));
-      return;
-    }
-  }
+function resolveEnding(choice){
+ // Specific final decisions take precedence over general low-stat endings.
+ const ordered=choice.text==='Разделить на улусы'?[endings[5],...endings.filter((e,i)=>i!==5)]:endings;
+ const ending=ordered.find(e=>e.condition(stats,choice,path));
+ loadEnding(ending);safePlay(document.getElementById('winSound'));
 }
-
 function loadEnding(ending){
-  const img = document.getElementById("eventImage");
-  const text = document.getElementById("eventText");
-  const choicesContainer = document.getElementById("choices");
-  img.style.opacity = 0;
-  text.style.opacity = 0;
-  choicesContainer.innerHTML = "";
-  document.body.style.background = ending.bgColor;
-  setTimeout(() => {
-    img.src = ending.image;
-    text.innerText = ending.text;
-    img.style.opacity = 1;
-    text.style.opacity = 1;
-    let btn = document.createElement("button");
-    btn.innerText = "Начать заново";
-    btn.style.opacity = 0;
-    btn.onclick = () => location.reload();
-    setTimeout(() => {btn.style.opacity = 1;}, 300);
-    choicesContainer.appendChild(btn);
-  }, 500);
+ ++renderVersion;gameOver=true;clearOutcome();
+ const img=document.getElementById('eventImage');img.src=ending.image;img.style.opacity=1;
+ document.getElementById('eventText').textContent=ending.text;
+ document.getElementById('eventText').style.opacity=1;document.body.style.background=ending.bgColor;
+ const panel=document.getElementById('outcomePanel');panel.hidden=false;
+ const summary=document.createElement('p');summary.textContent='Ваш путь: '+(path==='war'?'военные походы':'внутренняя политика')+'. Принято сюжетных решений: '+decisionsMade+'. Это итог игровой модели, а не предсказание реальной истории.';panel.appendChild(summary);
+ const history=document.createElement('p');history.className='story-note';history.textContent='Историческая справка: Чингисхан умер в 1227 году. Его преемник Угэдэй стал великим ханом в 1229 году. Альтернативные решения и пять дополнительных бытовых эпизодов в игре являются реконструкцией.';panel.appendChild(history);
+ const source=document.createElement('a');source.href='https://afe.easia.columbia.edu/mongols/figures/figu_ogo.htm';source.target='_blank';source.rel='noopener noreferrer';source.textContent='Источник справки — Columbia University, Asia for Educators';panel.appendChild(source);
+ const choices=document.getElementById('choices');choices.innerHTML='';choices.appendChild(actionButton('Начать заново и попробовать другой путь',()=>location.reload()));
 }
+
 
 // ПРОЛОГ
 let video = document.getElementById("introVideo");
