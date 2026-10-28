@@ -9,7 +9,9 @@
   {id:'kremlin',name:'Московский Кремль',place:'Москва, Россия',lon:37.6215,lat:55.7525,color:'#b67a68',note:'Красные стены, часы Спасской башни, зелёный шатёр и звезда — миниатюрный Кремль над Москвой.'},
   {id:'taj',name:'Тадж-Махал',place:'Агра, Индия',lon:78.0421,lat:27.1751,color:'#c2b692',note:'Белый купол и четыре стройных минарета — маленькая мраморная сказка на берегу Ямуны.'},
   {id:'opera',name:'Сиднейская опера',place:'Сидней, Австралия',lon:151.2153,lat:-33.8568,color:'#8faeb7',note:'Скульптурные белые паруса на тёплом подиуме — силуэт Сиднейской оперы у воды.'},
-  {id:'christ',name:'Христос-Искупитель',place:'Рио-де-Жанейро, Бразилия',lon:-43.2105,lat:-22.9519,color:'#a0b99a',note:'Распростёртые руки над зелёной вершиной Корковаду — знакомый силуэт Рио.'}
+  {id:'christ',name:'Христос-Искупитель',place:'Рио-де-Жанейро, Бразилия',lon:-43.2105,lat:-22.9519,color:'#a0b99a',note:'Распростёртые руки над зелёной вершиной Корковаду — знакомый силуэт Рио.'},
+  {id:'wall',name:'Великая китайская стена',place:'Бадалин, Китай',lon:116.0167,lat:40.3555,color:'#ab9b76',note:'Декоративный фрагмент стены с зубцами и сторожевыми башнями, идущий по зелёному горному гребню у Бадалина.'},
+  {id:'colosseum',name:'Колизей',place:'Рим, Италия',lon:12.4922,lat:41.8902,color:'#b89d78',note:'Открытая овальная арена, ярусы арок и неровный край древних стен — маленький Колизей на своём месте в Риме.'}
  ];
  const add=(a,b)=>a.map((x,i)=>x+b[i]),sub=(a,b)=>a.map((x,i)=>x-b[i]),mul=(v,n)=>v.map(x=>x*n);
  const dot=(a,b)=>a.reduce((n,x,i)=>n+x*b[i],0),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
@@ -27,7 +29,7 @@
  function disk(m,r,z,color,alpha=1){for(let i=0;i<28;i++){const a=i*Math.PI/14,b=(i+1)*Math.PI/14;face(m,[[0,0,z],[r*Math.cos(a),r*Math.sin(a),z],[r*Math.cos(b),r*Math.sin(b),z]],color,alpha)}}
  function pyramid(m,x,y,size,height,z=0){const base=[[x-size/2,y-size/2,z],[x+size/2,y-size/2,z],[x+size/2,y+size/2,z],[x-size/2,y+size/2,z]],tip=[x,y,z+height];for(let i=0;i<4;i++)face(m,[base[i],base[(i+1)%4],tip],['#e5c48a','#c69e60','#edcf98','#cfa866'][i]);for(let row=1;row<7;row++){const t=row/7,span=size*(1-t);beam(m,[x-span/2,y-span/2-.0006,z+height*t],[x+span/2,y-span/2-.0006,z+height*t],.0009,'#d6b277')}}
  function buildPyramid(){const m=model();disk(m,.151,.002,'#445b4c',.13);disk(m,.142,.004,'#d9cba4');pyramid(m,-.015,-.015,.175,.155,.006);pyramid(m,-.108,.064,.103,.094,.007);pyramid(m,.073,.086,.072,.066,.007);return m}
- function buildEiffel(){const m=model(),metal='#aa8265',light='#c2a183';disk(m,.112,.002,'#384f4b',.14);box(m,0,0,.004,.175,.145,.009,'#c4c6af');const levels=[[.013,.073],[.095,.042],[.168,.026],[.29,.011],[.355,.004]];
+ function buildEiffel(){const m=model(),metal='#aa8265',light='#c2a183';disk(m,.08,.002,'#384f4b',.14);box(m,0,0,.004,.13,.11,.009,'#c4c6af');const levels=[[.013,.073],[.095,.042],[.168,.026],[.29,.011],[.355,.004]];
  for(let side=0;side<4;side++){const a=side*Math.PI/2,b=(side+1)*Math.PI/2;for(let l=0;l<levels.length-1;l++){const [z0,r0]=levels[l],[z1,r1]=levels[l+1];const p=[r0*Math.cos(a+Math.PI/4),r0*Math.sin(a+Math.PI/4),z0],q=[r1*Math.cos(a+Math.PI/4),r1*Math.sin(a+Math.PI/4),z1];beam(m,p,q,l===0?.008:.004,metal);if(l>0){const pp=[r0*Math.cos(b+Math.PI/4),r0*Math.sin(b+Math.PI/4),z0],qq=[r1*Math.cos(b+Math.PI/4),r1*Math.sin(b+Math.PI/4),z1];beam(m,p,qq,.0023,light);beam(m,pp,q,.0023,light);const mid=(z0+z1)/2,rm=(r0+r1)/2;beam(m,[rm*Math.cos(a+Math.PI/4),rm*Math.sin(a+Math.PI/4),mid],[rm*Math.cos(b+Math.PI/4),rm*Math.sin(b+Math.PI/4),mid],.0025,metal)}}}
  // Four lower arches leave the centre open.
  for(let side=0;side<4;side++){const a=side*Math.PI/2;let prev;for(let i=0;i<=12;i++){const t=i/12,u=(t-.5)*.099,z=.017+.058*Math.sqrt(Math.max(0,1-((t-.5)*2)**2));const p=[Math.cos(a)*u-Math.sin(a)*.045,Math.sin(a)*u+Math.cos(a)*.045,z];if(prev)beam(m,prev,p,.0033,metal);prev=p}}
@@ -114,7 +116,44 @@
   beam(m,[0,0,.272],[0,0,.293],.017,stone);sphere(m,[0,-.001,.309],.0195,stone,10,6,1.2);sphere(m,[0,.002,.321],.0175,'#aeb9af',8,4,.65);box(m,0,-.02,.303,.005,.005,.009,light);
   return m;
  }
- function buildModels(){const builders={pyramid:buildPyramid,eiffel:buildEiffel,liberty:buildLiberty,kremlin:buildKremlin,taj:buildTaj,opera:buildOpera,christ:buildChrist};return LANDMARKS.map(l=>({...l,frame:frame(l.lon,l.lat),mesh:builders[l.id]()}))}
+ function buildWall(){
+  const m=model(),stone='#c3b28d',edge='#deccaa',path=[[-.152,.016,.028],[-.113,.049,.05],[-.073,.046,.073],[-.032,.009,.058],[.012,-.027,.078],[.057,-.018,.105],[.105,.02,.085],[.151,.038,.056]];
+  disk(m,.175,.002,'#53674c',.11);disk(m,.165,.003,'#bac6a0');
+  const ridgeNormal=i=>{const a=path[Math.max(0,i-1)],b=path[Math.min(path.length-1,i+1)],dx=b[0]-a[0],dy=b[1]-a[1],n=Math.hypot(dx,dy);return[-dy/n,dx/n]};
+  for(let i=0;i<path.length-1;i++){
+   const a=path[i],b=path[i+1],dx=b[0]-a[0],dy=b[1]-a[1],n=Math.hypot(dx,dy),px=-dy/n,py=dx/n;
+   const point=(p,w,h=0)=>[p[0]+px*w,p[1]+py*w,p[2]+h];
+   // The green ridge continues underneath every wall segment.
+   const na=ridgeNormal(i),nb=ridgeNormal(i+1);for(const side of [-1,1])face(m,[[a[0]+na[0]*.046*side,a[1]+na[1]*.046*side,.004],[b[0]+nb[0]*.046*side,b[1]+nb[1]*.046*side,.004],[b[0],b[1],b[2]],[a[0],a[1],a[2]]],side<0?'#9eb58a':'#809d76');
+   const width=.011,h=.031;face(m,[point(a,-width),point(b,-width),point(b,-width,h),point(a,-width,h)],stone);face(m,[point(b,width),point(a,width),point(a,width,h),point(b,width,h)],'#b3a17d');face(m,[point(a,-width,h),point(b,-width,h),point(b,width,h),point(a,width,h)],edge);
+   for(const side of [-1,1]){face(m,[point(a,width*side,h),point(b,width*side,h),point(b,width*side,h+.011),point(a,width*side,h+.011)],'#b4a27e');for(let j=0;j<4;j++){const t=(j+.15)/4,p=a.map((v,k)=>v+(b[k]-v)*t);box(m,p[0]+px*width*side,p[1]+py*width*side,p[2]+h+.009,.0065,.0065,.009,edge)}}
+  }
+  for(const i of [1,4,6]){const p=path[i],z=p[2];box(m,p[0],p[1],z,.043,.038,.054,stone);box(m,p[0],p[1],z+.054,.049,.044,.005,edge);for(const x of [-1,1])for(const y of [-1,1])box(m,p[0]+x*.019,p[1]+y*.016,z+.059,.01,.01,.013,stone);box(m,p[0],p[1],z+.059,.009,.009,.004,'#a89672');pointedArch(m,p[0],p[1]-.0195,z+.009,.012,.025,'#766d55')}
+  return m;
+ }
+ function buildColosseum(){
+  const m=model(),n=16,rx=.064,ry=.046,ix=.05,iy=.033,stone='#d3bd98',light='#e6d3af';
+  const at=(angle,xr,yr,z)=>[Math.cos(angle)*xr,Math.sin(angle)*yr,z];
+  const ring=(a,b,z0,z1,color)=>{const ao=at(a,rx,ry,z0),bo=at(b,rx,ry,z0),ai=at(a,ix,iy,z0),bi=at(b,ix,iy,z0),A=at(a,rx,ry,z1),B=at(b,rx,ry,z1),C=at(a,ix,iy,z1),D=at(b,ix,iy,z1);face(m,[ao,bo,B,A],color);face(m,[bi,ai,C,D],'#bda786');face(m,[A,B,D,C],light);};
+  // An oval arena stays genuinely open, rather than a filled cylinder.
+  for(let i=0;i<28;i++){const a=i*Math.PI/14,b=(i+1)*Math.PI/14;face(m,[[0,0,.005],at(a,.073,.053,.005),at(b,.073,.053,.005)],'#c8c3aa');face(m,[[0,0,.009],at(a,ix,iy,.009),at(b,ix,iy,.009)],'#bcaa88')}
+  for(let level=0;level<3;level++)for(let i=0;i<n;i++){
+   if(level===2&&i>=11)continue; // The surviving high wall breaks down to two tiers.
+   const a=i*2*Math.PI/n,b=(i+1)*2*Math.PI/n,z=.012+level*.025,h=.025,lo=a+(b-a)*.14,hi=b-(b-a)*.14;
+   ring(a,lo,z,z+h,stone);ring(hi,b,z,z+h,stone);ring(a,b,z,z+.003,light);
+   const arch=t=>z+.009+.011*Math.sqrt(Math.max(0,1-(2*t-1)**2));
+   for(let j=0;j<5;j++){const t=j/5,u=(j+1)/5,A=lo+(hi-lo)*t,B=lo+(hi-lo)*u,za=arch(t),zb=arch(u);
+    face(m,[at(A,rx,ry,za),at(B,rx,ry,zb),at(B,rx,ry,z+h),at(A,rx,ry,z+h)],stone);
+    face(m,[at(B,ix,iy,zb),at(A,ix,iy,za),at(A,ix,iy,z+h),at(B,ix,iy,z+h)],'#baa481');
+    face(m,[at(A,rx,ry,za),at(A,ix,iy,za),at(B,ix,iy,zb),at(B,rx,ry,zb)],'#aa9271');
+   }
+   ring(a,b,z+h-.002,z+h+.002,light);
+  }
+  // Keep Rome compact beside Paris without moving either geographic anchor.
+  for(const f of m.faces)f.points=f.points.map(p=>[p[0]*.8,p[1]*.8,p[2]]);
+  return m;
+ }
+ function buildModels(){const builders={pyramid:buildPyramid,eiffel:buildEiffel,liberty:buildLiberty,kremlin:buildKremlin,taj:buildTaj,opera:buildOpera,christ:buildChrist,wall:buildWall,colosseum:buildColosseum};return LANDMARKS.map(l=>({...l,frame:frame(l.lon,l.lat),mesh:builders[l.id]()}))}
  function shade(hex,amount){const x=parseInt(hex.slice(1),16);return`rgb(${[x>>16,(x>>8)&255,x&255].map(v=>Math.min(255,Math.round(v*amount))).join(',')})`}
  function drawMiniatures(ctx,models,view){const {cx,cy,r,lon,lat,selected}=view,c=camera(lon,lat),light=norm([-.5,.8,1.2]),faces=[],bounds=[];
  for(const m of models){const front=dot(m.frame.normal,c.front);if(front<=.015)continue;const opacity=Math.min(1,(front-.015)/.12),points=[];
