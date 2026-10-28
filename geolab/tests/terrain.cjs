@@ -43,3 +43,29 @@ bad.mount(makeLayer(),options);bad.flush();for(let i=0;i<badImages.length;i++)if
 assert(badStates.at(-1).state==='error');assert(bad.nodes.size===0,'Broken tiles should not obscure the overview');const failed=badImages.length;bad.flush();assert(badImages.length===failed,'Retry loop without backoff');bad.retry();assert(badImages.length>failed,'Manual retry failed');
 bad.mount(null,{});m.mount(null,{});
 console.log('PASS: graceful failure without broken images, retry backoff, explicit retry');
+// Regression: zooming out must keep finer NASA imagery while coarse tiles load,
+// after they load, and even when they fail. Redrawing a question must keep it too.
+const stickyImages=[],stickyStates=[];
+const sticky=new TerrainTiles({createImage:()=>{const i=makeImage();stickyImages.push(i);return i},onStatus:s=>stickyStates.push(s),pixelRatio:()=>1});
+const near={k:8,x:-2800,y:-2100};
+sticky.mount(makeLayer(),{...options,transform:near});sticky.flush();
+for(let i=0;i<stickyImages.length;i++)if(stickyImages[i].onload)stickyImages[i].onload();
+const sharpKeys=[...sticky.nodes.keys()],sharpZoom=sticky.plan.zoom;
+assert(sharpKeys.length>0);const nearRequests=stickyImages.length;
+sticky.update(view);
+assert(sharpKeys.every(key=>sticky.nodes.has(key)),'Zoom-out discarded already loaded sharp terrain');
+assert(stickyStates.at(-1).displayed>0,'Status forgot visible NASA imagery');
+sticky.flush();
+for(let i=nearRequests;i<stickyImages.length;i++)if(stickyImages[i].onerror)stickyImages[i].onerror();
+assert(sharpKeys.every(key=>sticky.nodes.has(key)),'Failed overview tiles removed ready detail');
+assert(stickyStates.at(-1).displayed>=sharpKeys.length);
+sticky.retry();
+for(let i=nearRequests;i<stickyImages.length;i++)if(stickyImages[i].onload)stickyImages[i].onload();
+assert(sharpKeys.every(key=>sticky.nodes.has(key)),'Loaded coarse tiles replaced sharper NASA imagery');
+const zs=sticky.layer.children.map(node=>+node.attributes.href.match(/\/(\d+)\/\d+\/\d+\.jpg$/)[1]);
+assert(zs.every((z,i)=>i===0||zs[i-1]<=z),'Coarse tiles draw above sharp tiles');
+sticky.mount(makeLayer(),options);sticky.flush();
+assert(sharpKeys.every(key=>sticky.nodes.has(key)),'Question redraw lost sharp imagery after zoom-out');
+assert([...sticky.nodes.keys()].some(k=>+k.split('/')[0]===sharpZoom));
+sticky.mount(null,{});
+console.log('PASS: sharp NASA tiles survive zoom-out, coarse-tile failures and successes, and question redraws; sharp imagery always draws on top');

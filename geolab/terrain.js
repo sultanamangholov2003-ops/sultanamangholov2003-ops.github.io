@@ -33,6 +33,26 @@
     return { zoom: z, tiles, left, top, size };
   }
 
+  function readyCoverage(cache) {
+    const covered = new Set();
+    const levels = Array.from({length: MAX_ZOOM + 1}, () => new Set());
+    for (const [key, entry] of cache) if (entry.status === 'ready') {
+      covered.add(key); levels[entry.tile.z].add(key);
+    }
+    // Four fully covered children also cover their parent, without downloading it.
+    for (let z = MAX_ZOOM; z > 0; z--) {
+      for (const key of levels[z]) {
+        const [, x, y] = key.split('/').map(Number), px = Math.floor(x / 2), py = Math.floor(y / 2);
+        const parent = `${z - 1}/${px}/${py}`;
+        if (covered.has(parent)) continue;
+        if ([0,1].every(dy => [0,1].every(dx => covered.has(`${z}/${px*2+dx}/${py*2+dy}`)))) {
+          covered.add(parent); levels[z - 1].add(parent);
+        }
+      }
+    }
+    return covered;
+  }
+
   class TerrainTiles {
     constructor(options = {}) {
       this.createImage = options.createImage || (() => new Image());
@@ -41,7 +61,7 @@
       this.cache = new Map(); this.nodes = new Map(); this.active = 0;
       this.layer = null; this.plan = { tiles: [] }; this.timer = null;
       this.enabled = false; this.concurrency = 6; this.limit = 256;
-      this.queue = []; this.clock = 0;
+      this.queue = []; this.clock = 0; this.covered = new Set();
     }
     mount(layer, options) {
       this.layer = layer; this.options = options; this.nodes = new Map();
@@ -67,7 +87,9 @@
       clearTimeout(this.timer); this.timer = null;
       if (!this.enabled) return;
       if (root.navigator && root.navigator.onLine === false) { this.emit('offline'); return; }
+      this.covered = readyCoverage(this.cache);
       this.queue = this.plan.tiles.filter(t => {
+        if (this.covered.has(t.key)) return false;
         const entry = this.cache.get(t.key);
         return !entry || (entry.status === 'error' && Date.now() - entry.errorAt > 60000);
       });
@@ -84,7 +106,7 @@
       if (!this.enabled) return;
       while (this.active < this.concurrency && this.queue.length) {
         const tile = this.queue.shift();
-        if (!this.wanted.has(tile.key) || this.cache.get(tile.key)?.status === 'loading') continue;
+        if (!this.wanted.has(tile.key) || this.covered.has(tile.key) || this.cache.get(tile.key)?.status === 'loading') continue;
         this.load(tile);
       }
     }
@@ -112,19 +134,24 @@
     }
     paint() {
       if (!this.enabled || !this.layer) { this.emit(); return; }
-      // Ready parents remain visible while the sharper children arrive.
-      const visible = new Map();
-      for (const tile of this.plan.tiles) {
-        for (let dz = 2; dz >= 0; dz--) {
-          if (tile.z < dz) continue;
-          const factor = 2 ** dz, key = `${tile.z - dz}/${Math.floor(tile.x / factor)}/${Math.floor(tile.y / factor)}`;
-          const entry = this.cache.get(key);
-          if (entry?.status === 'ready') { visible.set(key, entry); entry.touched = ++this.clock; }
-        }
+      // Keep every visible ready NASA tile, including sharper children on zoom-out.
+      // A newly requested coarse tile is drawn underneath, never over fine detail.
+      this.covered = readyCoverage(this.cache);
+      const visible = new Map(), o = this.options, world = TAU * o.scale;
+      const left = o.translate[0] - world / 2, top = o.translate[1] - world / 2;
+      for (const [key, entry] of this.cache) {
+        if (entry.status !== 'ready') continue;
+        const t = entry.tile, size = world / (2 ** t.z);
+        const x = this.transform.x + this.transform.k * (left + t.x * size);
+        const y = this.transform.y + this.transform.k * (top + t.y * size);
+        const pixels = size * this.transform.k;
+        if (x >= o.width || y >= o.height || x + pixels <= 0 || y + pixels <= 0) continue;
+        // A fully covered ancestor adds no visual coverage; its children are sharper.
+        const childrenCover = t.z < MAX_ZOOM && [0,1].every(dy => [0,1].every(dx =>
+          this.covered.has(`${t.z+1}/${t.x*2+dx}/${t.y*2+dy}`)));
+        if (!childrenCover) { visible.set(key, entry); entry.touched = ++this.clock; }
       }
       for (const [key, node] of this.nodes) if (!visible.has(key)) { node.remove(); this.nodes.delete(key); }
-      const o = this.options, world = TAU * o.scale;
-      const left = o.translate[0] - world / 2, top = o.translate[1] - world / 2;
       const ordered = [...visible.values()].sort((a, b) => a.tile.z - b.tile.z);
       for (const entry of ordered) {
         const t = entry.tile, size = world / (2 ** t.z);
@@ -156,13 +183,13 @@
     }
     emit(forced) {
       const entries = this.plan.tiles.map(t => this.cache.get(t.key));
-      const loaded = entries.filter(e => e?.status === 'ready').length;
-      const failed = entries.filter(e => e?.status === 'error').length;
+      const loaded = this.plan.tiles.filter(t => this.covered.has(t.key)).length;
+      const failed = this.plan.tiles.filter(t => !this.covered.has(t.key) && this.cache.get(t.key)?.status === 'error').length;
       const total = entries.length;
       const state = forced || (!this.enabled ? 'inactive' : !total ? 'outside' :
         loaded === total ? 'ready' : failed === total ? 'error' :
         failed > 0 && loaded + failed === total ? 'partial' : 'loading');
-      this.onStatus({ state, loaded, failed, total, zoom: this.plan.zoom });
+      this.onStatus({ state, loaded, failed, total, displayed: this.enabled ? this.nodes.size : 0, zoom: this.plan.zoom });
     }
   }
   const api = { TerrainTiles, planTiles, tileURL, MAX_ZOOM };
