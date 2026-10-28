@@ -1,8 +1,11 @@
 'use strict';
 const assert=require('assert'),fs=require('fs'),path=require('path'),vm=require('vm'),d3=require('../assets/d3.min.js');
 const a=require('../landmarks.js'),models=a.buildModels();
-assert.deepStrictEqual(models.map(m=>m.id),['pyramid','eiffel','liberty','kremlin','taj','opera','christ','wall','colosseum']);
+assert.deepStrictEqual(models.map(m=>m.id),['pyramid','eiffel','liberty','kremlin','taj','opera','christ','wall','colosseum','burj','moai','fuji','machu','baiterek']);
 for(const m of models){assert(m.mesh.faces.length>100);assert(m.lon>=-180&&m.lon<=180&&m.lat>=-90&&m.lat<=90);for(const f of m.mesh.faces){assert(f.points.length>=3);for(const p of f.points)assert(p.length===3&&p.every(Number.isFinite));}}
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const cardIds=[...html.matchAll(/data-landmark="([^"]+)"/g)].map(m=>m[1]);
+assert.deepStrictEqual(cardIds,models.map(m=>m.id),'Some miniatures are missing from the accessible collection');
 const paris=models.find(m=>m.id==='eiffel'),rome=models.find(m=>m.id==='colosseum');
 const footprint=m=>Math.max(...m.mesh.faces.flatMap(f=>f.points.map(p=>Math.hypot(p[0],p[1]))));
 const distance=Math.hypot(...a.worldPoint([0,0,0],paris.frame).map((v,i)=>v-a.worldPoint([0,0,0],rome.frame)[i]));
@@ -17,7 +20,7 @@ for(const [lon,lat] of [[-20,10],[0,0],[80,30],[-120,-20]]){
 }
 const overview=a.drawMiniatures(ctx,models,{cx:480,cy:360,r:250,lon:-20,lat:10});assert(['pyramid','eiffel','liberty'].every(id=>overview.some(b=>b.id===id)),'Original three lost from the overview');
 for(const m of models){assert(a.drawMiniatures(ctx,[m],{cx:480,cy:360,r:250,lon:m.lon,lat:Math.max(-80,Math.min(60,m.lat-42))}).length===1,'Selected miniature not visible: '+m.id);assert(a.drawMiniatures(ctx,[m],{cx:480,cy:360,r:250,lon:m.lon+180,lat:-m.lat}).length===0,'Backside miniature not hidden: '+m.id);}
-console.log('PASS: all nine 3D models have finite geometry, match globe coordinates and hide on the far side');
+console.log('PASS: all fourteen 3D models have finite geometry, match globe coordinates and hide on the far side');
 const elements=new Map();function el(){return{hidden:false,style:{},classList:{add(){},remove(){},toggle(){}},querySelectorAll(){return[]},setAttribute(){}}}
 const document={querySelector(s){if(!elements.has(s))elements.set(s,el());return elements.get(s)},querySelectorAll(){return[]}};
 const window={location:{hash:'',pathname:'/geolab/',search:''},history:{replaceState(a,b,url){window.location.hash=url==='#globe'?url:''}},scrollTo(){}};

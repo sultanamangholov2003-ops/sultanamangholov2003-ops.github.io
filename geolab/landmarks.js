@@ -11,7 +11,12 @@
   {id:'opera',name:'Сиднейская опера',place:'Сидней, Австралия',lon:151.2153,lat:-33.8568,color:'#8faeb7',note:'Скульптурные белые паруса на тёплом подиуме — силуэт Сиднейской оперы у воды.'},
   {id:'christ',name:'Христос-Искупитель',place:'Рио-де-Жанейро, Бразилия',lon:-43.2105,lat:-22.9519,color:'#a0b99a',note:'Распростёртые руки над зелёной вершиной Корковаду — знакомый силуэт Рио.'},
   {id:'wall',name:'Великая китайская стена',place:'Бадалин, Китай',lon:116.0167,lat:40.3555,color:'#ab9b76',note:'Декоративный фрагмент стены с зубцами и сторожевыми башнями, идущий по зелёному горному гребню у Бадалина.'},
-  {id:'colosseum',name:'Колизей',place:'Рим, Италия',lon:12.4922,lat:41.8902,color:'#b89d78',note:'Открытая овальная арена, ярусы арок и неровный край древних стен — маленький Колизей на своём месте в Риме.'}
+  {id:'colosseum',name:'Колизей',place:'Рим, Италия',lon:12.4922,lat:41.8902,color:'#b89d78',note:'Открытая овальная арена, ярусы арок и неровный край древних стен — маленький Колизей на своём месте в Риме.'},
+  {id:'burj',name:'Бурдж-Халифа',place:'Дубай, ОАЭ',lon:55.2744,lat:25.1972,color:'#91aebc',note:'Серебристые уступы, три крыла и тонкий шпиль — Бурдж-Халифа поднимается над Дубаем.'},
+  {id:'moai',name:'Моаи',place:'Рапануи, Чили',lon:-109.2768,lat:-27.1258,color:'#a18f79',note:'Три каменных стража на маленькой зелёной площадке — миниатюра моаи острова Рапануи в Тихом океане.'},
+  {id:'fuji',name:'Фудзи',place:'Хонсю, Япония',lon:138.7274,lat:35.3606,color:'#9caeb5',note:'Симметричные склоны, неровная снежная шапка и розовая сакура у подножия — маленькая Фудзи.'},
+  {id:'machu',name:'Мачу-Пикчу',place:'Анды, Перу',lon:-72.545,lat:-13.1631,color:'#94a779',note:'Каменные домики, зелёные ступени террас и горный гребень — Мачу-Пикчу высоко в Андах.'},
+  {id:'baiterek',name:'Байтерек',place:'Астана, Казахстан',lon:71.4304,lat:51.1282,color:'#c6ae62',note:'Белые ветви поддерживают золотой шар — Байтерек, символ Астаны, на своём месте в Казахстане.'}
  ];
  const add=(a,b)=>a.map((x,i)=>x+b[i]),sub=(a,b)=>a.map((x,i)=>x-b[i]),mul=(v,n)=>v.map(x=>x*n);
  const dot=(a,b)=>a.reduce((n,x,i)=>n+x*b[i],0),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
@@ -153,7 +158,98 @@
   for(const f of m.faces)f.points=f.points.map(p=>[p[0]*.8,p[1]*.8,p[2]]);
   return m;
  }
- function buildModels(){const builders={pyramid:buildPyramid,eiffel:buildEiffel,liberty:buildLiberty,kremlin:buildKremlin,taj:buildTaj,opera:buildOpera,christ:buildChrist,wall:buildWall,colosseum:buildColosseum};return LANDMARKS.map(l=>({...l,frame:frame(l.lon,l.lat),mesh:builders[l.id]()}))}
+ function buildBurj(){
+  const m=model(),glass='#9ebbc8',silver='#d6e0df',shadeGlass='#7498ab';disk(m,.078,.002,'#d7ccb1');
+  lathe(m,0,0,.005,.048,.01,[[0,1],[1,1]],'#e4d8bd',18);
+  // Three radiating wings step back at different heights around a central spire.
+  lathe(m,0,0,.015,.019,.304,[[0,1],[.45,.92],[.72,.7],[1,.42]],glass,12);
+  for(let wing=0;wing<3;wing++){
+   const angle=wing*Math.PI*2/3-Math.PI/2,dx=Math.cos(angle),dy=Math.sin(angle),top=.225+wing*.025;
+   for(let step=0;step<6;step++){
+    const t=step/6,z=.015+top*t,h=top/6,r=.016*(1-t*.52),offset=.029*(1-t*.85),x=dx*offset,y=dy*offset;
+    lathe(m,x,y,z,r,h,[[0,1],[1,1]],wing===1?shadeGlass:glass,10);
+    lathe(m,x,y,z+h-.0015,r*1.04,.002,[[0,1],[1,1]],silver,10);
+    for(let rib=0;rib<6;rib++){const a=rib*Math.PI/3;beam(m,[x+r*Math.cos(a),y+r*Math.sin(a),z],[x+r*Math.cos(a),y+r*Math.sin(a),z+h],.0011,silver)}
+   }
+  }
+  lathe(m,0,0,.319,.008,.047,[[0,1],[1,.4]],silver,8);beam(m,[0,0,.366],[0,0,.426],.0024,'#dfe6df');
+  return m;
+ }
+ function buildMoai(){
+  const m=model();disk(m,.142,.002,'#81966c');disk(m,.125,.005,'#b0bf89');
+  box(m,0,0,.008,.242,.07,.016,'#9f9c83');box(m,0,-.004,.024,.228,.057,.008,'#b9b096');
+  function statue(x,y,s){const head=model(),stone='#aa9b83',dark='#8a7b66',light='#beaf96';
+   frustum(head,0,0,0,.061,.042,.051,.034,.072,stone);
+   beam(head,[-.021,-.013,.054],[-.022,-.022,.007],.009,dark);beam(head,[.021,-.013,.054],[.022,-.022,.007],.009,dark);
+   frustum(head,0,0,.072,.043,.035,.048,.043,.111,stone);frustum(head,0,.003,.183,.048,.043,.04,.037,.025,dark);
+   // Forehead, deep brows, long projecting nose, tight lips and elongated ears.
+   box(head,0,-.023,.163,.05,.014,.012,dark);
+   for(const sign of [-1,1]){box(head,sign*.014,-.023,.153,.013,.003,.007,'#665f52');box(head,sign*.027,.001,.091,.009,.026,.082,light)}
+   face(head,[[-.006,-.025,.166],[.006,-.025,.166],[.009,-.044,.113],[-.009,-.044,.113]],light);
+   face(head,[[-.009,-.044,.113],[.009,-.044,.113],[.009,-.025,.11],[-.009,-.025,.11]],dark);
+   face(head,[[-.006,-.025,.166],[-.009,-.044,.113],[-.009,-.025,.11]],stone);
+   face(head,[[.006,-.025,.166],[.009,-.025,.11],[.009,-.044,.113]],dark);
+   box(head,0,-.025,.094,.031,.009,.007,dark);box(head,0,-.026,.097,.026,.009,.003,light);
+   frustum(head,0,-.004,.075,.037,.039,.039,.043,.013,light);
+   for(const f of head.faces)face(m,f.points.map(p=>[x+p[0]*s,y+p[1]*s,.032+p[2]*s]),f.color);
+  }
+  statue(-.077,0,.8);statue(0,0,1);statue(.077,0,.87);
+  return m;
+ }
+ function buildFuji(){
+  const m=model(),n=24;disk(m,.127,.002,'#9cae84');
+  const ring=(i,level)=>{const a=i*Math.PI*2/n,wave=Math.sin(a*5)*.003+Math.cos(a*3)*.002;
+   const r=[.117+wave,.083+wave*.6,.043+wave*.4,.0125+wave*.2][level];
+   const z=[.005,.061,.127+.009*Math.sin(a*5)+.004*Math.cos(a*3),.193+.003*Math.cos(a*4)][level];return[Math.cos(a)*r,Math.sin(a)*r,z]};
+  for(let j=0;j<3;j++)for(let i=0;i<n;i++)face(m,[ring(i,j),ring(i+1,j),ring(i+1,j+1),ring(i,j+1)],j===2?(i%3?'#f4f1e8':'#d9e2e2'):(i%3?'#8fa2ae':'#a9b5bc'));
+  // The crater is recessed, and the snow boundary is deliberately uneven.
+  for(let i=0;i<n;i++){const a=i*Math.PI*2/n,b=(i+1)*Math.PI*2/n;face(m,[ring(i,3),ring(i+1,3),[.006*Math.cos(b),.006*Math.sin(b),.183],[.006*Math.cos(a),.006*Math.sin(a),.183]],'#bfcace')}
+  for(const [x,y,s] of [[-.074,-.068,1],[.063,-.081,.85]]){
+   beam(m,[x,y,.006],[x,y,.041*s],.004,'#8d7968');
+   for(const [dx,dy,dz] of [[-.012,0,.041],[.011,.003,.045],[0,-.008,.054]]){beam(m,[x,y,.027],[x+dx*s,y+dy*s,dz*s],.002,'#8d7968');sphere(m,[x+dx*s,y+dy*s,dz*s],.014*s,dx<0?'#e4b4c1':'#f1cbd1',7,4,.85)}
+  }
+  return m;
+ }
+ function buildMachu(){
+  const m=model();disk(m,.149,.002,'#748c64');
+  // A continuous mountain crest, with Huayna Picchu rising behind the terraces.
+  lathe(m,.019,.05,.004,.095,.075,[[0,1],[.5,.8],[1,.4]],'#8da37b',9);
+  lathe(m,.029,.073,.035,.056,.154,[[0,1],[.3,.84],[.65,.5],[.89,.24],[1,0]],'#6b8e70',9);
+  lathe(m,-.072,.05,.008,.052,.108,[[0,1],[.45,.65],[.8,.3],[1,0]],'#8aa27b',8);
+  for(let i=0;i<6;i++){
+   const w=.228-i*.018,d=.11-i*.008,y=-.022+i*.003,z=.006+i*.012;
+   box(m,0,y,z,w,d,.009,'#a8aa87');box(m,0,y,z+.009,w-.005,d-.004,.003,'#9ab477');
+   // Stone seams make the stepped retaining walls readable.
+   for(let x=-w/2+.018;x<w/2;x+=.026)beam(m,[x,y-d/2-.0003,z],[x,y-d/2-.0003,z+.008],.0008,'#d0c9ab');
+  }
+  function house(x,y,z,w,d){box(m,x,y,z,w,d,.022,'#c5bda2');
+   face(m,[[x-w/2,y-d/2,z+.022],[x+w/2,y-d/2,z+.022],[x,y-d/2,z+.035]],'#d8ceb2');
+   face(m,[[x+w/2,y+d/2,z+.022],[x-w/2,y+d/2,z+.022],[x,y+d/2,z+.035]],'#b0aa91');
+   box(m,x,y-d/2-.0005,z,.008,.001,.016,'#696e5b');
+  }
+  for(const x of [-.056,-.015,.029])for(const y of [-.033,.003])house(x,y,.078,.026,.023);
+  // A narrow stairway climbs through the central agricultural terraces.
+  for(let i=0;i<7;i++)box(m,.061,-.07+i*.009,.006+i*.01,.014,.011,.006,'#c4bea2');
+  return m;
+ }
+ function buildBaiterek(){
+  const m=model(),white='#e9e8dc',shadeWhite='#ccd7d2',gold='#d6b656';
+  disk(m,.079,.002,'#9bac89');lathe(m,0,0,.005,.062,.009,[[0,1],[1,1]],'#d7d3b8',20);
+  lathe(m,0,0,.014,.045,.01,[[0,1],[1,1]],'#eeead7',16);
+  lathe(m,0,0,.024,.014,.176,[[0,1],[.25,.7],[.8,.7],[1,1.2]],white,12);
+  for(let i=0;i<12;i++){
+   const a=i*Math.PI/6,at=(r,z)=>[Math.cos(a)*r,Math.sin(a)*r,z];
+   const path=[at(.035,.024),at(.016,.092),at(.019,.164),at(.041,.205),at(.049,.234)];
+   for(let j=0;j<path.length-1;j++)beam(m,path[j],path[j+1],.0035,i%2?white:shadeWhite);
+   // Branches fork outward into the nest supporting the golden sphere.
+   const b=a+Math.PI/12;beam(m,path[2],[Math.cos(b)*.045,Math.sin(b)*.045,.221],.0026,white);
+  }
+  sphere(m,[0,0,.237],.041,gold,16,10,1);
+  // Gold facets and fine meridians keep the sphere distinct from the white nest.
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;for(let j=2;j<9;j++){const t=-Math.PI/2+j*Math.PI/10,u=t+Math.PI/10;beam(m,[.0413*Math.cos(t)*Math.cos(a),.0413*Math.cos(t)*Math.sin(a),.237+.0413*Math.sin(t)],[.0413*Math.cos(u)*Math.cos(a),.0413*Math.cos(u)*Math.sin(a),.237+.0413*Math.sin(u)],.00065,'#ead28a')}}
+  return m;
+ }
+ function buildModels(){const builders={pyramid:buildPyramid,eiffel:buildEiffel,liberty:buildLiberty,kremlin:buildKremlin,taj:buildTaj,opera:buildOpera,christ:buildChrist,wall:buildWall,colosseum:buildColosseum,burj:buildBurj,moai:buildMoai,fuji:buildFuji,machu:buildMachu,baiterek:buildBaiterek};return LANDMARKS.map(l=>({...l,frame:frame(l.lon,l.lat),mesh:builders[l.id]()}))}
  function shade(hex,amount){const x=parseInt(hex.slice(1),16);return`rgb(${[x>>16,(x>>8)&255,x&255].map(v=>Math.min(255,Math.round(v*amount))).join(',')})`}
  function drawMiniatures(ctx,models,view){const {cx,cy,r,lon,lat,selected}=view,c=camera(lon,lat),light=norm([-.5,.8,1.2]),faces=[],bounds=[];
  for(const m of models){const front=dot(m.frame.normal,c.front);if(front<=.015)continue;const opacity=Math.min(1,(front-.015)/.12),points=[];
