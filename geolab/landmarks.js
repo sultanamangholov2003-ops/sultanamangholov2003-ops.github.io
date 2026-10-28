@@ -5,7 +5,11 @@
  const LANDMARKS=[
   {id:'pyramid',name:'Пирамида Хеопса',place:'Гиза, Египет',lon:31.1342,lat:29.9792,color:'#d6ad6d',note:'Тёплый песчаник и строгая геометрия — маленький символ древнего Египта.'},
   {id:'eiffel',name:'Эйфелева башня',place:'Париж, Франция',lon:2.2945,lat:48.8584,color:'#aa836b',note:'Ажурная башня над Парижем — теперь и на нашем маленьком глобусе.'},
-  {id:'liberty',name:'Статуя Свободы',place:'Нью-Йорк, США',lon:-74.0445,lat:40.6892,color:'#7cae9b',note:'Корона, факел и зелёная патина — узнаваемый силуэт на берегу Атлантики.'}
+  {id:'liberty',name:'Статуя Свободы',place:'Нью-Йорк, США',lon:-74.0445,lat:40.6892,color:'#7cae9b',note:'Корона, факел и зелёная патина — узнаваемый силуэт на берегу Атлантики.'},
+  {id:'kremlin',name:'Московский Кремль',place:'Москва, Россия',lon:37.6215,lat:55.7525,color:'#b67a68',note:'Красные стены, часы Спасской башни, зелёный шатёр и звезда — миниатюрный Кремль над Москвой.'},
+  {id:'taj',name:'Тадж-Махал',place:'Агра, Индия',lon:78.0421,lat:27.1751,color:'#c2b692',note:'Белый купол и четыре стройных минарета — маленькая мраморная сказка на берегу Ямуны.'},
+  {id:'opera',name:'Сиднейская опера',place:'Сидней, Австралия',lon:151.2153,lat:-33.8568,color:'#8faeb7',note:'Скульптурные белые паруса на тёплом подиуме — силуэт Сиднейской оперы у воды.'},
+  {id:'christ',name:'Христос-Искупитель',place:'Рио-де-Жанейро, Бразилия',lon:-43.2105,lat:-22.9519,color:'#a0b99a',note:'Распростёртые руки над зелёной вершиной Корковаду — знакомый силуэт Рио.'}
  ];
  const add=(a,b)=>a.map((x,i)=>x+b[i]),sub=(a,b)=>a.map((x,i)=>x-b[i]),mul=(v,n)=>v.map(x=>x*n);
  const dot=(a,b)=>a.reduce((n,x,i)=>n+x*b[i],0),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
@@ -40,7 +44,65 @@
  // Crown band and seven rays.
  for(let i=0;i<7;i++){const a=2*Math.PI*i/7;const p=[.018*Math.cos(a),.018*Math.sin(a),.322],tip=[.039*Math.cos(a),.039*Math.sin(a),.342];beam(m,p,tip,.0038,light)}
  return m}
- function buildModels(){return LANDMARKS.map((l,i)=>({...l,frame:frame(l.lon,l.lat),mesh:[buildPyramid,buildEiffel,buildLiberty][i]()}))}
+ function lathe(m,x,y,z,r,h,profile,color,segments=10){
+  const at=(i,j)=>[x+r*profile[j][1]*Math.cos(i*Math.PI*2/segments),y+r*profile[j][1]*Math.sin(i*Math.PI*2/segments),z+h*profile[j][0]];
+  for(let j=0;j<profile.length-1;j++)for(let i=0;i<segments;i++)face(m,[at(i,j),at(i+1,j),at(i+1,j+1),at(i,j+1)],color);
+  if(profile.at(-1)[1]>0)face(m,Array.from({length:segments},(_,i)=>at(i,profile.length-1)),color);
+ }
+ function dome(m,x,y,z,r,h,color){lathe(m,x,y,z,r,h,[[0,.69],[.18,.95],[.42,1],[.65,.85],[.86,.45],[1,0]],color,12)}
+ function pointedArch(m,x,y,z,w,h,color){const pts=[[x-w/2,y,z],[x+w/2,y,z],[x+w/2,y,z+h*.63],[x+w*.28,y,z+h*.86],[x,y,z+h],[x-w*.28,y,z+h*.86],[x-w/2,y,z+h*.63]];face(m,pts,color)}
+ function star(m,x,y,z,r,color){const pts=[];for(let i=0;i<10;i++){const a=Math.PI/2+i*Math.PI/5,rr=i%2?r*.43:r;pts.push([x+Math.cos(a)*rr,y,z+Math.sin(a)*rr])}for(let i=0;i<10;i++)face(m,[[x,y-.001,z],pts[i],pts[(i+1)%10]],color)}
+ function buildKremlin(){
+  const m=model(),brick='#b8715e',shadeBrick='#985847',stone='#ddcdb1',green='#567a67';disk(m,.154,.002,'#435a49',.14);disk(m,.145,.004,'#a6b58e');
+  // A little courtyard, crenellated walls and corner towers.
+  box(m,0,.015,.007,.24,.14,.013,'#c6b994');
+  for(const y of [-.057,.082]){box(m,0,y,.018,.25,.018,.045,brick);for(let i=0;i<12;i++)box(m,-.115+i*.021,y,.063,.011,.02,.014,stone)}
+  for(const x of [-.12,.12]){box(m,x,.012,.018,.018,.145,.045,brick);for(let i=0;i<7;i++)box(m,x,-.052+i*.021,.063,.02,.011,.014,stone)}
+  for(const x of [-.12,.12])for(const y of [-.057,.082]){box(m,x,y,.014,.034,.034,.069,brick);frustum(m,x,y,.083,.043,.043,0,0,.055,green);beam(m,[x,y,.138],[x,y,.15],.0028,'#c9b37a')}
+  // White church and golden cupolas behind the Spasskaya Tower.
+  box(m,-.016,.039,.021,.09,.064,.071,'#e4dfc8');for(const [x,y,r] of [[-.016,.039,.024],[-.05,.041,.013],[.019,.041,.013]]){lathe(m,x,y,.092,r*.65,.026,[[0,1],[1,1]],'#d8ceac',8);dome(m,x,y,.118,r,r*1.3,'#d8b764');beam(m,[x,y,.118+r*1.3],[x,y,.133+r*1.3],.002,'#c7a45a')}
+  // Tall clock tower: deliberately schematic, with a readable south clock face.
+  box(m,.015,-.057,.018,.065,.06,.148,brick);box(m,.015,-.057,.166,.074,.069,.009,stone);box(m,.015,-.057,.175,.057,.052,.065,brick);box(m,.015,-.057,.24,.069,.064,.009,stone);
+  box(m,.015,-.057,.249,.046,.042,.032,stone);frustum(m,.015,-.057,.281,.067,.059,.008,.008,.088,green);beam(m,[.015,-.057,.369],[.015,-.057,.393],.0035,'#bfa368');star(m,.015,-.057,.4,.014,'#bd6650');
+  const clock=(radius,color,y)=>{const p=Array.from({length:20},(_,i)=>[.015+radius*Math.cos(i*Math.PI/10),y,.207+radius*Math.sin(i*Math.PI/10)]);face(m,p,color)};clock(.019,'#d4b66f',-.084);clock(.0155,'#4f5145',-.085);
+  beam(m,[.015,-.086,.207],[.015,-.086,.219],.0023,'#ecd492');beam(m,[.015,-.086,.207],[.024,-.086,.204],.0023,'#ecd492');
+  pointedArch(m,.015,-.087,.024,.022,.046,'#644c3e');for(const x of [-.002,.031])pointedArch(m,x,-.084,.119,.009,.028,'#734d41');
+  return m;
+ }
+ function buildTaj(){
+  const m=model(),white='#eee7d6',light='#faf4e4',edge='#d6c8ad',gold='#c9ae70';disk(m,.171,.002,'#536248',.12);box(m,0,0,.004,.285,.22,.012,'#a9b68c');box(m,0,0,.016,.245,.175,.013,edge);box(m,0,.009,.029,.157,.12,.077,white);box(m,0,.009,.106,.172,.132,.007,light);
+  box(m,0,-.005,.113,.085,.077,.025,white);lathe(m,0,-.005,.138,.036,.016,[[0,1],[1,1]],edge,12);dome(m,0,-.005,.154,.048,.072,light);beam(m,[0,-.005,.226],[0,-.005,.251],.0027,gold);sphere(m,[0,-.005,.244],.004,gold,6,4);
+  for(const x of [-.058,.058])for(const y of [-.028,.048]){lathe(m,x,y,.113,.014,.018,[[0,1],[1,1]],white,8);dome(m,x,y,.131,.018,.023,light);beam(m,[x,y,.154],[x,y,.165],.002,gold)}
+  for(const x of [-.108,.108])for(const y of [-.073,.073]){lathe(m,x,y,.029,.01,.128,[[0,1.2],[.3,1],[.65,.88],[1,.75]],white,8);for(const z of [.066,.111,.154])lathe(m,x,y,z,.013,.004,[[0,1],[1,1]],edge,8);lathe(m,x,y,.158,.008,.022,[[0,1],[1,1]],white,8);dome(m,x,y,.18,.014,.018,light);beam(m,[x,y,.198],[x,y,.211],.002,gold)}
+  // Arched front, smaller portals and a garden pool.
+  pointedArch(m,0,-.052,.031,.041,.065,'#a1937a');pointedArch(m,0,-.053,.031,.029,.056,'#6c7469');
+  for(const x of [-.055,.055])pointedArch(m,x,-.052,.036,.022,.041,'#a99f87');box(m,0,-.091,.028,.022,.036,.001,'#87b6bc');box(m,-.046,-.092,.028,.037,.026,.003,'#8fa47c');box(m,.046,-.092,.028,.037,.026,.003,'#8fa47c');
+  return m;
+ }
+ function operaSail(m,x,y,z,length,width,height){
+  const at=(i,j)=>{const t=i/7,a=j*Math.PI/8;return[x+length*t,y+width*Math.pow(1-t,.7)*Math.cos(a),z+height*(t+.3*Math.sin(Math.PI*t)*Math.sin(a))]};
+  for(let i=0;i<7;i++)for(let j=0;j<8;j++){const pts=[at(i,j),at(i+1,j),at(i+1,j+1),at(i,j+1)];if(length>0)pts.reverse();face(m,pts,j<4?'#fff8e9':'#f0eee4');}
+  for(const j of [4])for(let i=0;i<7;i++)beam(m,at(i,j),at(i+1,j),.0011,'#ded8c8');
+ }
+ function buildOpera(){
+  const m=model();disk(m,.168,.002,'#4a6971',.13);disk(m,.157,.004,'#8bb9c2');box(m,0,0,.006,.278,.184,.018,'#bb9677');box(m,0,0,.024,.254,.17,.009,'#d9b998');
+  for(let i=0;i<4;i++)box(m,-.073,-.105-i*.006,.005+i*.003,.15,.008,.004,'#ccb092');
+  operaSail(m,-.111,.035,.033,.13,.042,.152);operaSail(m,.108,.035,.033,-.086,.04,.122);
+  operaSail(m,-.103,-.04,.033,.106,.036,.119);operaSail(m,.09,-.04,.033,-.067,.032,.094);
+  operaSail(m,-.052,.087,.031,.082,.025,.077);operaSail(m,.088,-.082,.031,-.055,.021,.065);
+  // Glazing is a narrow band beneath the white shells.
+  box(m,0,-.083,.033,.2,.003,.013,'#84a5a3');
+  return m;
+ }
+ function buildChrist(){
+  const m=model(),stone='#e4e3d8',shade='#c4ccc3',light='#f2f0e5';disk(m,.144,.002,'#46624c',.16);lathe(m,0,0,.004,.137,.058,[[0,1],[.6,.65],[1,.35]],'#9db18b',9);box(m,0,0,.062,.087,.07,.014,'#b5b8a6');frustum(m,0,0,.076,.068,.053,.046,.038,.041,'#cbd0be');box(m,0,0,.117,.061,.05,.009,light);
+  frustum(m,0,0,.126,.057,.044,.044,.029,.128,stone);frustum(m,0,0,.254,.044,.029,.071,.032,.023,stone);
+  for(let i=-2;i<=2;i++)beam(m,[i*.01,-.022,.13],[i*.006,-.016,.258],.0019,shade);
+  for(const sign of [-1,1]){beam(m,[sign*.027,0,.267],[sign*.082,0,.27],.023,stone);beam(m,[sign*.082,0,.27],[sign*.137,0,.263],.016,light);box(m,sign*.147,-.001,.256,.025,.016,.014,light)}
+  beam(m,[0,0,.272],[0,0,.293],.017,stone);sphere(m,[0,-.001,.309],.0195,stone,10,6,1.2);sphere(m,[0,.002,.321],.0175,'#aeb9af',8,4,.65);box(m,0,-.02,.303,.005,.005,.009,light);
+  return m;
+ }
+ function buildModels(){const builders={pyramid:buildPyramid,eiffel:buildEiffel,liberty:buildLiberty,kremlin:buildKremlin,taj:buildTaj,opera:buildOpera,christ:buildChrist};return LANDMARKS.map(l=>({...l,frame:frame(l.lon,l.lat),mesh:builders[l.id]()}))}
  function shade(hex,amount){const x=parseInt(hex.slice(1),16);return`rgb(${[x>>16,(x>>8)&255,x&255].map(v=>Math.min(255,Math.round(v*amount))).join(',')})`}
  function drawMiniatures(ctx,models,view){const {cx,cy,r,lon,lat,selected}=view,c=camera(lon,lat),light=norm([-.5,.8,1.2]),faces=[],bounds=[];
  for(const m of models){const front=dot(m.frame.normal,c.front);if(front<=.015)continue;const opacity=Math.min(1,(front-.015)/.12),points=[];
@@ -69,13 +131,13 @@
    if(earth)earth.draw(w,h,ratio,lon,lat,r);else{svg.attr('viewBox',`0 0 ${w} ${h}`);svg.selectAll('.wonder-sphere').attr('cx',cx).attr('cy',cy).attr('r',r);fp.scale(r).translate([cx,cy]).rotate([-lon,-lat]);paths.attr('d',d3.geoPath(fp))}
    if(modelsCanvas.width!==Math.round(w*ratio)||modelsCanvas.height!==Math.round(h*ratio)){modelsCanvas.width=Math.round(w*ratio);modelsCanvas.height=Math.round(h*ratio)}ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);bounds=drawMiniatures(ctx,models,{cx,cy,r,lon,lat,selected});dirty=false;
   }
-  function setSelection(id){const m=LANDMARKS.find(x=>x.id===id);if(!m)return;selected=id;zoom=Math.max(zoom,1.12);spinning=false;syncPause();document.querySelectorAll('[data-landmark]').forEach(b=>{b.classList.toggle('active',b.dataset.landmark===id);b.setAttribute('aria-pressed',String(b.dataset.landmark===id))});document.getElementById('landmarkNote').textContent=m.note;const delta=((m.lon-lon)%360+540)%360-180;if(matchMedia('(prefers-reduced-motion: reduce)').matches){lon=m.lon;lat=Math.max(-55,Math.min(60,m.lat-42));flight=null}else flight={start:performance.now(),lon,lat,dx:delta,dy:Math.max(-55,Math.min(60,m.lat-42))-lat};dirty=true}
+  function setSelection(id){const m=LANDMARKS.find(x=>x.id===id);if(!m)return;selected=id;zoom=Math.max(zoom,1.12);spinning=false;syncPause();document.querySelectorAll('[data-landmark]').forEach(b=>{b.classList.toggle('active',b.dataset.landmark===id);b.setAttribute('aria-pressed',String(b.dataset.landmark===id))});document.getElementById('landmarkNote').textContent=m.note;if(innerWidth<660)stage.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});else document.querySelector(`[data-landmark="${id}"]`)?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});const delta=((m.lon-lon)%360+540)%360-180;if(matchMedia('(prefers-reduced-motion: reduce)').matches){lon=m.lon;lat=Math.max(-80,Math.min(60,m.lat-42));flight=null}else flight={start:performance.now(),lon,lat,dx:delta,dy:Math.max(-80,Math.min(60,m.lat-42))-lat};dirty=true}
   function reset(){selected=null;flight=null;lon=-20;lat=10;zoom=1;spinning=!matchMedia('(prefers-reduced-motion: reduce)').matches;syncPause();document.querySelectorAll('[data-landmark]').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false')});document.getElementById('landmarkNote').textContent='Миниатюры увеличены для красоты. Их основания находятся у настоящих мест на Земле.';dirty=true}
   pause.onclick=()=>{spinning=!spinning;flight=null;syncPause()};document.getElementById('landmarkReset').onclick=reset;document.getElementById('landmarkZoomIn').onclick=()=>{zoom=Math.min(1.4,zoom+.1);dirty=true};document.getElementById('landmarkZoomOut').onclick=()=>{zoom=Math.max(.8,zoom-.1);dirty=true};document.querySelectorAll('[data-landmark]').forEach(b=>b.onclick=()=>setSelection(b.dataset.landmark));
   stage.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag={x:e.clientX,y:e.clientY,lon,lat,moved:false};flight=null;spinning=false;syncPause();stage.setPointerCapture(e.pointerId)});
-  stage.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>5)drag.moved=true;lon=drag.lon-dx*.32;lat=Math.max(-65,Math.min(70,drag.lat+dy*.28));dirty=true});
-  stage.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;if(!moved){const r=stage.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=bounds.find(b=>x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1);if(hit)setSelection(hit.id)}});stage.addEventListener('pointercancel',()=>drag=null);
-  stage.addEventListener('keydown',e=>{const keys={ArrowLeft:[-5,0],ArrowRight:[5,0],ArrowUp:[0,5],ArrowDown:[0,-5]};if(keys[e.key]){e.preventDefault();spinning=false;flight=null;lon+=keys[e.key][0];lat=Math.max(-65,Math.min(70,lat+keys[e.key][1]));syncPause();dirty=true}});
+  stage.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>5)drag.moved=true;lon=drag.lon-dx*.32;lat=Math.max(-80,Math.min(70,drag.lat+dy*.28));dirty=true});
+  stage.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;if(!moved){const r=stage.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=bounds.filter(b=>x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1).sort((a,b)=>Math.hypot(x-(a.x0+a.x1)/2,y-(a.y0+a.y1)/2)-Math.hypot(x-(b.x0+b.x1)/2,y-(b.y0+b.y1)/2))[0];if(hit)setSelection(hit.id)}});stage.addEventListener('pointercancel',()=>drag=null);
+  stage.addEventListener('keydown',e=>{const keys={ArrowLeft:[-5,0],ArrowRight:[5,0],ArrowUp:[0,5],ArrowDown:[0,-5]};if(keys[e.key]){e.preventDefault();spinning=false;flight=null;lon+=keys[e.key][0];lat=Math.max(-80,Math.min(70,lat+keys[e.key][1]));syncPause();dirty=true}});
   new ResizeObserver(()=>{dirty=true;if(!page.hidden)render()}).observe(stage);
   function tick(time){const dt=Math.min(80,time-last);last=time;if(!page.hidden&&!document.hidden){if(flight){const t=Math.min(1,(time-flight.start)/850),k=t*t*(3-2*t);lon=flight.lon+flight.dx*k;lat=flight.lat+flight.dy*k;dirty=true;if(t===1)flight=null}else if(spinning&&!drag){lon=(lon+dt*.0024+540)%360-180;dirty=true}if(dirty&&time-lastDraw>=32){render();lastDraw=time}}requestAnimationFrame(tick)}syncPause();render();requestAnimationFrame(tick);return{refresh(){dirty=true;render()},select:setSelection};
  }
