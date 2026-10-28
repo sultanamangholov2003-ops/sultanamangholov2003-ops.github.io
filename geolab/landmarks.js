@@ -80,18 +80,30 @@
   return m;
  }
  function operaSail(m,x,y,z,length,width,height){
-  const at=(i,j)=>{const t=i/7,a=j*Math.PI/8;return[x+length*t,y+width*Math.pow(1-t,.7)*Math.cos(a),z+height*(t+.3*Math.sin(Math.PI*t)*Math.sin(a))]};
-  for(let i=0;i<7;i++)for(let j=0;j<8;j++){const pts=[at(i,j),at(i+1,j),at(i+1,j+1),at(i,j+1)];if(length>0)pts.reverse();face(m,pts,j<4?'#fff8e9':'#f0eee4');}
-  for(const j of [4])for(let i=0;i<7;i++)beam(m,at(i,j),at(i+1,j),.0011,'#ded8c8');
+  // A closed vaulted shell: both long edges rest on the podium, not in water.
+  const at=(i,j)=>{const t=i/8,a=j*Math.PI/12;return[x+length*t,y+width*(1-.62*t)*Math.cos(a),z+height*Math.sin(t*Math.PI/2)*Math.sin(a)]};
+  for(let i=0;i<8;i++)for(let j=0;j<12;j++){const pts=[at(i,j),at(i+1,j),at(i+1,j+1),at(i,j+1)];if(length>0)pts.reverse();face(m,pts,'#fff9eb');}
+  face(m,[at(0,0),at(0,12),at(8,12),at(8,0)],'#d8d4c6');
+  // The arched front closes the volume. A white rim keeps the sail readable.
+  const front=Array.from({length:13},(_,j)=>at(8,j));face(m,front,'#779a9b');
+  for(let j=0;j<12;j++)beam(m,front[j],front[j+1],.0035,'#f5f0e4');
+  for(const j of [6])for(let i=0;i<8;i++)beam(m,at(i,j),at(i+1,j),.0009,'#e7dfcf');
  }
  function buildOpera(){
-  const m=model();disk(m,.168,.002,'#4a6971',.13);disk(m,.157,.004,'#8bb9c2');box(m,0,0,.006,.278,.184,.018,'#bb9677');box(m,0,0,.024,.254,.17,.009,'#d9b998');
-  for(let i=0;i<4;i++)box(m,-.073,-.105-i*.006,.005+i*.003,.15,.008,.004,'#ccb092');
-  operaSail(m,-.111,.035,.033,.13,.042,.152);operaSail(m,.108,.035,.033,-.086,.04,.122);
-  operaSail(m,-.103,-.04,.033,.106,.036,.119);operaSail(m,.09,-.04,.033,-.067,.032,.094);
-  operaSail(m,-.052,.087,.031,.082,.025,.077);operaSail(m,.088,-.082,.031,-.055,.021,.065);
-  // Glazing is a narrow band beneath the white shells.
-  box(m,0,-.083,.033,.2,.003,.013,'#84a5a3');
+  const m=model();
+  // Raised continuous stone quay; no blue disc or roofs below the foundation.
+  disk(m,.165,.002,'#64756d',.11);
+  box(m,0,0,.006,.296,.207,.027,'#b79779');
+  box(m,0,0,.033,.278,.192,.015,'#c9ad8a');
+  box(m,0,0,.048,.26,.18,.009,'#e3cdb0');
+  for(let i=0;i<4;i++)box(m,-.052,-.112+i*.006,.01+i*.01,.18,.013,.011,'#d4b99a');
+  const floor=.057;
+  operaSail(m,-.125,.046,floor,.112,.043,.151);
+  operaSail(m,-.013,.046,floor,.078,.037,.108);
+  operaSail(m,.065,.046,floor,.055,.029,.068);
+  operaSail(m,-.108,-.045,floor,.1,.037,.117);
+  operaSail(m,-.008,-.045,floor,.079,.032,.083);
+  operaSail(m,.071,-.045,floor,.044,.024,.052);
   return m;
  }
  function buildChrist(){

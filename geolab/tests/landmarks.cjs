@@ -3,6 +3,7 @@ const assert=require('assert'),fs=require('fs'),path=require('path'),vm=require(
 const a=require('../landmarks.js'),models=a.buildModels();
 assert.deepStrictEqual(models.map(m=>m.id),['pyramid','eiffel','liberty','kremlin','taj','opera','christ']);
 for(const m of models){assert(m.mesh.faces.length>100);assert(m.lon>=-180&&m.lon<=180&&m.lat>=-90&&m.lat<=90);for(const f of m.mesh.faces){assert(f.points.length>=3);for(const p of f.points)assert(p.length===3&&p.every(Number.isFinite));}}
+const opera=models.find(m=>m.id==='opera');const shells=opera.mesh.faces.filter(f=>f.color==='#fff9eb');assert(shells.length>100&&shells.every(f=>f.points.every(p=>p[2]>=.057-1e-9)),'Opera roofs intersect their foundation');assert(!opera.mesh.faces.some(f=>f.color==='#8bb9c2'),'Flood-like water disc returned');
 const ctx={save(){},restore(){},setLineDash(){},beginPath(){},moveTo(x,y){assert(Number.isFinite(x+y))},lineTo(x,y){assert(Number.isFinite(x+y))},closePath(){},fill(){},ellipse(){},stroke(){}};
 for(const [lon,lat] of [[-20,10],[0,0],[80,30],[-120,-20]]){
  const c=a.camera(lon,lat),p=d3.geoOrthographic().rotate([-lon,-lat]).scale(250*1.004).translate([480,360]);
