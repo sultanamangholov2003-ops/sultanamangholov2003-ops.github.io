@@ -18,6 +18,36 @@
   {id:'machu',name:'Мачу-Пикчу',place:'Анды, Перу',lon:-72.545,lat:-13.1631,color:'#94a779',note:'Каменные домики, зелёные ступени террас и горный гребень — Мачу-Пикчу высоко в Андах.'},
   {id:'baiterek',name:'Байтерек',place:'Астана, Казахстан',lon:71.4304,lat:51.1282,color:'#c6ae62',note:'Белые ветви поддерживают золотой шар — Байтерек, символ Астаны, на своём месте в Казахстане.'}
  ];
+ // Each short fact links to the official source used to check it.
+ const TOUR_STOPS=[
+  {id:'baiterek',fact:'Золотой шар Байтерека связан с легендой о птице Самрук: на Дереве жизни она откладывает золотое яйцо — символ солнца.',source:'https://kazakhstan.travel/ru/attractions/423',credit:'Kazakhstan Travel'},
+  {id:'taj',fact:'Тадж-Махал — мавзолей из белого мрамора. Шах-Джахан приказал построить его в Агре в память о своей супруге.',source:'https://whc.unesco.org/en/list/252/',credit:'ЮНЕСКО'},
+  {id:'wall',fact:'Великая китайская стена создавалась на протяжении многих веков: более ранние укрепления объединяли в общую оборонительную систему.',source:'https://whc.unesco.org/en/list/438/',credit:'ЮНЕСКО'},
+  {id:'fuji',fact:'Фудзи — вулкан высотой 3 776 метров. Эта священная гора веками вдохновляла японских художников и поэтов.',source:'https://whc.unesco.org/en/list/1418/',credit:'ЮНЕСКО'},
+  {id:'opera',fact:'Сиднейскую оперу официально открыли 20 октября 1973 года. Её необычные белые своды спроектировал датский архитектор Йорн Утзон.',source:'https://www.sydneyoperahouse.com/our-story/50-years-extraordinary-moments',credit:'Sydney Opera House'},
+  {id:'moai',fact:'Моаи — каменные фигуры, созданные полинезийскими жителями Рапануи. Их возводили здесь с X по XVI век.',source:'https://whc.unesco.org/en/list/715/',credit:'ЮНЕСКО'},
+  {id:'machu',fact:'Мачу-Пикчу находится в Андах на высоте около 2 430 метров. Каменные стены и террасы вписаны в крутые горные склоны.',source:'https://whc.unesco.org/en/list/274/',credit:'ЮНЕСКО'},
+  {id:'christ',fact:'Статую Христа-Искупителя открыли в 1931 году. Её поверхность облицована тысячами маленьких треугольников из мыльного камня.',source:'https://www.santuariocristoredentor.com.br/a-historia-em-um-clique',credit:'Santuário Cristo Redentor'},
+  {id:'liberty',fact:'Статую Свободы изготовили во Франции, разобрали и перевезли в Нью-Йорк. Торжественное открытие состоялось 28 октября 1886 года.',source:'https://www.nps.gov/stli/learn/statue-of-liberty-facts.htm',credit:'Служба национальных парков США'},
+  {id:'eiffel',fact:'Эйфелеву башню построили к Всемирной выставке 1889 года. На строительство ушло 2 года, 2 месяца и 5 дней.',source:'https://www.toureiffel.paris/en/the-monument/history',credit:'Официальный сайт Эйфелевой башни'},
+  {id:'colosseum',fact:'Другое название Колизея — амфитеатр Флавиев. Его построили в I веке нашей эры для зрелищ, в том числе гладиаторских боёв.',source:'https://colosseo.it/en/area/colosseo/',credit:'Археологический парк Колизея'},
+  {id:'pyramid',fact:'Пирамиды Гизы — часть древнего некрополя Мемфиса. Вместе с храмами и гробницами они рассказывают о погребальных традициях Древнего Египта.',source:'https://whc.unesco.org/en/list/86/',credit:'ЮНЕСКО'},
+  {id:'burj',fact:'Высота Бурдж-Халифы — 828 метров. Небоскрёб в Дубае открылся в 2010 году.',source:'https://www.visitdubai.com/en/places-to-visit/burj-khalifa',credit:'Visit Dubai'},
+  {id:'kremlin',fact:'Кремль — целый архитектурный ансамбль, а не одна башня. Его сооружения возводили российские и зарубежные мастера с XIV по XVII век.',source:'https://whc.unesco.org/en/list/545/',credit:'ЮНЕСКО'}
+ ];
+ function createLandmarkTour(onVisit=()=>{},onChange=()=>{}){
+  let index=-1,status='idle',elapsed=0;const dwell=8000;
+  const state=()=>({index,status,elapsed,dwell,total:TOUR_STOPS.length,stop:TOUR_STOPS[index]||null});
+  function visit(i,nextStatus){index=Math.max(0,Math.min(TOUR_STOPS.length-1,i));status=nextStatus;elapsed=0;onVisit(TOUR_STOPS[index],state());onChange(state())}
+  function finish(){status='finished';elapsed=dwell;onChange(state())}
+  return{state,start(){visit(0,'running')},stop(){index=-1;status='idle';elapsed=0;onChange(state())},
+   pause(){if(status==='running'){status='paused';onChange(state())}},
+   resume(){if(status==='paused'){status='running';onChange(state())}},
+   next(){if(status==='idle'||status==='finished')return;if(index===TOUR_STOPS.length-1)finish();else visit(index+1,status)},
+   previous(){if(index>0)visit(index-1,status==='running'?'running':'paused')},
+   revisit(){if(index>=0)visit(index,'running')},
+   advance(dt){if(status!=='running')return;elapsed+=Math.max(0,dt);if(elapsed>=dwell){if(index===TOUR_STOPS.length-1)finish();else visit(index+1,'running')}}};
+ }
  const add=(a,b)=>a.map((x,i)=>x+b[i]),sub=(a,b)=>a.map((x,i)=>x-b[i]),mul=(v,n)=>v.map(x=>x*n);
  const dot=(a,b)=>a.reduce((n,x,i)=>n+x*b[i],0),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
  const norm=v=>mul(v,1/(Math.hypot(...v)||1));
@@ -273,21 +303,65 @@
   let lon=-20,lat=10,zoom=1,spinning=!matchMedia('(prefers-reduced-motion: reduce)').matches,drag=null,last=0,lastDraw=0,bounds=[],selected=null,flight=null,dirty=true;
   const earth=createEarth(earthCanvas,()=>{dirty=true}),fallback=document.getElementById('landmarkEarthFallback');let fp,paths,svg;
   if(!earth){earthCanvas.style.display='none';fallback.style.display='block';svg=d3.select(fallback);svg.append('defs').html('<radialGradient id="wonder-ocean" cx="30%" cy="25%"><stop stop-color="#8ab9cc"/><stop offset="1" stop-color="#447c9d"/></radialGradient><radialGradient id="wonder-shade" cx="30%" cy="20%" r="80%"><stop offset=".4" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#233b59" stop-opacity=".35"/></radialGradient>');svg.append('circle').attr('class','wonder-sphere').attr('fill','url(#wonder-ocean)');fp=d3.geoOrthographic();paths=svg.append('g').selectAll('path').data(world.features).join('path').attr('fill',(d,i)=>['#a7c493','#c9ce9b','#ccbc94','#a6bea0'][i%4]).attr('stroke','#688a77').attr('stroke-width',.4);svg.append('circle').attr('class','wonder-sphere').attr('fill','url(#wonder-shade)').attr('pointer-events','none')}
-  function syncPause(){pause.innerHTML=spinning?'Ⅱ <span>Пауза</span>':'▶ <span>Вращать</span>';pause.setAttribute('aria-label',spinning?'Остановить вращение':'Включить вращение');pause.setAttribute('aria-pressed',String(spinning))}
+  function syncPause(){const ts=tour.state();if(ts.status!=='idle'){pause.innerHTML=ts.status==='running'?'Ⅱ <span>Пауза</span>':'▶ <span>Продолжить</span>';pause.disabled=ts.status==='finished';pause.setAttribute('aria-label',ts.status==='running'?'Приостановить путешествие':'Продолжить путешествие');pause.setAttribute('aria-pressed',String(ts.status==='running'));return}pause.disabled=false;pause.innerHTML=spinning?'Ⅱ <span>Пауза</span>':'▶ <span>Вращать</span>';pause.setAttribute('aria-label',spinning?'Остановить вращение':'Включить вращение');pause.setAttribute('aria-pressed',String(spinning))}
   function render(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;const ratio=Math.min(devicePixelRatio||1,2),r=Math.min(w,h)*.355*zoom,cx=w/2,cy=h/2;
    if(earth)earth.draw(w,h,ratio,lon,lat,r);else{svg.attr('viewBox',`0 0 ${w} ${h}`);svg.selectAll('.wonder-sphere').attr('cx',cx).attr('cy',cy).attr('r',r);fp.scale(r).translate([cx,cy]).rotate([-lon,-lat]);paths.attr('d',d3.geoPath(fp))}
    if(modelsCanvas.width!==Math.round(w*ratio)||modelsCanvas.height!==Math.round(h*ratio)){modelsCanvas.width=Math.round(w*ratio);modelsCanvas.height=Math.round(h*ratio)}ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);bounds=drawMiniatures(ctx,models,{cx,cy,r,lon,lat,selected});dirty=false;
   }
-  function setSelection(id){const m=LANDMARKS.find(x=>x.id===id);if(!m)return;selected=id;zoom=Math.max(zoom,1.12);spinning=false;syncPause();document.querySelectorAll('[data-landmark]').forEach(b=>{b.classList.toggle('active',b.dataset.landmark===id);b.setAttribute('aria-pressed',String(b.dataset.landmark===id))});document.getElementById('landmarkNote').textContent=m.note;if(innerWidth<660)stage.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});else document.querySelector(`[data-landmark="${id}"]`)?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});const delta=((m.lon-lon)%360+540)%360-180;if(matchMedia('(prefers-reduced-motion: reduce)').matches){lon=m.lon;lat=Math.max(-80,Math.min(60,m.lat-42));flight=null}else flight={start:performance.now(),lon,lat,dx:delta,dy:Math.max(-80,Math.min(60,m.lat-42))-lat};dirty=true}
-  function reset(){selected=null;flight=null;lon=-20;lat=10;zoom=1;spinning=!matchMedia('(prefers-reduced-motion: reduce)').matches;syncPause();document.querySelectorAll('[data-landmark]').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false')});document.getElementById('landmarkNote').textContent='Миниатюры увеличены для красоты. Их основания находятся у настоящих мест на Земле.';dirty=true}
-  pause.onclick=()=>{spinning=!spinning;flight=null;syncPause()};document.getElementById('landmarkReset').onclick=reset;document.getElementById('landmarkZoomIn').onclick=()=>{zoom=Math.min(1.4,zoom+.1);dirty=true};document.getElementById('landmarkZoomOut').onclick=()=>{zoom=Math.max(.8,zoom-.1);dirty=true};document.querySelectorAll('[data-landmark]').forEach(b=>b.onclick=()=>setSelection(b.dataset.landmark));
-  stage.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag={x:e.clientX,y:e.clientY,lon,lat,moved:false};flight=null;spinning=false;syncPause();stage.setPointerCapture(e.pointerId)});
+  function focusLandmark(id,{guided=false,animate=true}={}){
+   const m=LANDMARKS.find(x=>x.id===id);if(!m)return;
+   selected=id;zoom=guided?1.08:Math.max(zoom,1.12);spinning=false;
+   document.querySelectorAll('[data-landmark]').forEach(b=>{b.classList.toggle('active',b.dataset.landmark===id);b.setAttribute('aria-pressed',String(b.dataset.landmark===id))});
+   document.getElementById('landmarkNote').textContent=m.note;
+   if(!guided&&innerWidth<660)stage.scrollIntoView({behavior:reduced()?'auto':'smooth',block:'start'});
+   // Scroll the collection only, so automatic stops never pull the whole page.
+   const card=document.querySelector(`[data-landmark="${id}"]`),list=document.querySelector('.landmark-list');
+   if(innerWidth>=660&&card&&list)list.scrollTop=card.offsetTop-list.offsetTop-(list.clientHeight-card.offsetHeight)/2;
+   const delta=((m.lon-lon)%360+540)%360-180,targetLat=Math.max(-80,Math.min(60,m.lat-42));
+   if(!animate||reduced()){lon=m.lon;lat=targetLat;flight=null}else flight={elapsed:0,duration:guided?1900:850,lon,lat,dx:delta,dy:targetLat-lat};dirty=true;
+  }
+  function setSelection(id){if(!LANDMARKS.some(m=>m.id===id))return;tour.stop();focusLandmark(id);syncPause()}
+  const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let needsRefocus=false;
+  const tourBox=document.getElementById('landmarkTour'),tourIntro=document.getElementById('tourIntro'),tourBody=document.getElementById('tourBody'),tourPause=document.getElementById('tourPause'),tourProgress=document.getElementById('tourProgress');
+  const tour=createLandmarkTour((stop,state)=>{needsRefocus=false;focusLandmark(stop.id,{guided:true,animate:state.status==='running'})},syncTour);
+  function syncTour(){
+   const t=tour.state(),active=t.status!=='idle';tourIntro.hidden=active;tourBody.hidden=!active;tourBox.classList.toggle('is-active',active);document.querySelector('.landmark-page').classList.toggle('is-touring',active);
+   if(active){const m=LANDMARKS.find(m=>m.id===t.stop.id);document.getElementById('tourCounter').textContent=`${String(t.index+1).padStart(2,'0')} / ${t.total}`;
+    document.getElementById('tourTitle').textContent=m.name;document.getElementById('tourPlace').textContent=m.place;document.getElementById('tourFact').textContent=t.stop.fact;
+    const link=document.getElementById('tourSource');link.href=t.stop.source;link.textContent=t.stop.credit+' ↗';
+    document.getElementById('tourStatus').textContent=t.status==='finished'?'Путешествие завершено':t.status==='paused'?'Путешествие на паузе':flight?'Перелёт к следующему чуду':'Остановимся и посмотрим';
+    tourPause.textContent=t.status==='paused'?'▶ Продолжить':'Ⅱ Пауза';tourPause.disabled=t.status==='finished';tourPause.setAttribute('aria-pressed',String(t.status==='paused'));
+    document.getElementById('tourPrevious').disabled=t.index===0;document.getElementById('tourNext').disabled=t.status==='finished';document.getElementById('tourNext').textContent=t.index===t.total-1?'Завершить →':'Дальше →';
+    document.getElementById('tourRestart').hidden=t.status!=='finished';
+   }syncPause();updateTourProgress();
+  }
+  function updateTourProgress(){const t=tour.state(),v=t.status==='idle'?0:Math.min(100,100*(t.index+t.elapsed/t.dwell)/t.total);tourProgress.style.width=v+'%'}
+  function toggleTourPause(){const t=tour.state();if(t.status==='running')tour.pause();else if(t.status==='paused'){if(needsRefocus)tour.revisit();else tour.resume()}}
+  function interruptTour(){if(tour.state().status==='running'||tour.state().status==='paused'){tour.pause();needsRefocus=true}flight=null}
+  function startTour(){tour.start();tourPause.focus({preventScroll:true});if(innerWidth<660)tourBox.scrollIntoView({behavior:reduced()?'auto':'smooth',block:'start'})}
+  document.getElementById('tourStart').onclick=startTour;document.getElementById('tourRestart').onclick=startTour;
+  tourPause.onclick=toggleTourPause;document.getElementById('tourPrevious').onclick=()=>tour.previous();document.getElementById('tourNext').onclick=()=>tour.next();document.getElementById('tourClose').onclick=()=>{flight=null;tour.stop();document.getElementById('tourStart').focus({preventScroll:true})};
+  function reset(){tour.stop();selected=null;flight=null;lon=-20;lat=10;zoom=1;spinning=!matchMedia('(prefers-reduced-motion: reduce)').matches;syncPause();document.querySelectorAll('[data-landmark]').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false')});document.getElementById('landmarkNote').textContent='Миниатюры увеличены для красоты. Их основания находятся у настоящих мест на Земле.';dirty=true}
+  pause.onclick=()=>{if(tour.state().status!=='idle'){toggleTourPause();return}spinning=!spinning;flight=null;syncPause()};document.getElementById('landmarkReset').onclick=reset;document.getElementById('landmarkZoomIn').onclick=()=>{zoom=Math.min(1.4,zoom+.1);dirty=true};document.getElementById('landmarkZoomOut').onclick=()=>{zoom=Math.max(.8,zoom-.1);dirty=true};document.querySelectorAll('[data-landmark]').forEach(b=>b.onclick=()=>setSelection(b.dataset.landmark));
+  stage.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag={x:e.clientX,y:e.clientY,lon,lat,moved:false};interruptTour();spinning=false;syncPause();stage.setPointerCapture(e.pointerId)});
   stage.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>5)drag.moved=true;lon=drag.lon-dx*.32;lat=Math.max(-80,Math.min(70,drag.lat+dy*.28));dirty=true});
   stage.addEventListener('pointerup',e=>{if(!drag)return;const moved=drag.moved;drag=null;if(!moved){const r=stage.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=bounds.filter(b=>x>=b.x0&&x<=b.x1&&y>=b.y0&&y<=b.y1).sort((a,b)=>Math.hypot(x-(a.x0+a.x1)/2,y-(a.y0+a.y1)/2)-Math.hypot(x-(b.x0+b.x1)/2,y-(b.y0+b.y1)/2))[0];if(hit)setSelection(hit.id)}});stage.addEventListener('pointercancel',()=>drag=null);
-  stage.addEventListener('keydown',e=>{const keys={ArrowLeft:[-5,0],ArrowRight:[5,0],ArrowUp:[0,5],ArrowDown:[0,-5]};if(keys[e.key]){e.preventDefault();spinning=false;flight=null;lon+=keys[e.key][0];lat=Math.max(-80,Math.min(70,lat+keys[e.key][1]));syncPause();dirty=true}});
+  stage.addEventListener('keydown',e=>{const keys={ArrowLeft:[-5,0],ArrowRight:[5,0],ArrowUp:[0,5],ArrowDown:[0,-5]};if(keys[e.key]){e.preventDefault();spinning=false;interruptTour();lon+=keys[e.key][0];lat=Math.max(-80,Math.min(70,lat+keys[e.key][1]));syncPause();dirty=true}});
   new ResizeObserver(()=>{dirty=true;if(!page.hidden)render()}).observe(stage);
-  function tick(time){const dt=Math.min(80,time-last);last=time;if(!page.hidden&&!document.hidden){if(flight){const t=Math.min(1,(time-flight.start)/850),k=t*t*(3-2*t);lon=flight.lon+flight.dx*k;lat=flight.lat+flight.dy*k;dirty=true;if(t===1)flight=null}else if(spinning&&!drag){lon=(lon+dt*.0024+540)%360-180;dirty=true}if(dirty&&time-lastDraw>=32){render();lastDraw=time}}requestAnimationFrame(tick)}syncPause();render();requestAnimationFrame(tick);return{refresh(){dirty=true;render()},select:setSelection};
+  function tick(time){
+   const dt=Math.min(80,Math.max(0,time-last));last=time;
+   if(!page.hidden&&!document.hidden){
+    const moving=tour.state().status!=='paused';
+    if(flight&&moving){flight.elapsed+=dt;const t=Math.min(1,flight.elapsed/flight.duration),k=t*t*(3-2*t);lon=flight.lon+flight.dx*k;lat=flight.lat+flight.dy*k;dirty=true;if(t===1){flight=null;syncTour()}}
+    else if(tour.state().status==='running'&&!drag){tour.advance(dt);updateTourProgress()}
+    else if(spinning&&!drag&&tour.state().status==='idle'){lon=(lon+dt*.0024+540)%360-180;dirty=true}
+    if(dirty&&time-lastDraw>=32){render();lastDraw=time}
+   }requestAnimationFrame(tick);
+  }
+  document.addEventListener('visibilitychange',()=>{last=performance.now()});
+  syncTour();render();requestAnimationFrame(tick);return{refresh(){last=performance.now();dirty=true;render()},select:setSelection};
  }
- const api={LANDMARKS,buildModels,camera,frame,worldPoint,projectPoint,drawMiniatures};
+ const api={LANDMARKS,TOUR_STOPS,createLandmarkTour,buildModels,camera,frame,worldPoint,projectPoint,drawMiniatures};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;else{root.GeoLabLandmarks=api;root.startLandmarkGlobe=startLandmarkGlobe}
 })(typeof window!=='undefined'?window:globalThis);
